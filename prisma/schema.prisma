@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+// UserRole enum
+enum UserRole {
+  ADMIN
+  USER
+
+  @@map("user_role_type")
+}
+
+// ResourceStatus enum
+enum ResourceStatus {
+  AVAILABLE
+  MAINTENANCE
+  INACTIVE
+
+  @@map("resource_status_type")
+}
+
+// ReservationStatus enum
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+
+  @@map("reservation_status_type")
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+//User model
+model User {
+  userId       String   @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
+  fullName     String   @map("full_name") @db.VarChar(150)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash")
+  userRole     UserRole @default(USER) @map("user_role")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions UserSession[]
+
+  createdCategories ResourceCategory[] @relation("CategoryCreatedBy")
+  updatedCategories ResourceCategory[] @relation("CategoryUpdatedBy")
+
+  createdResources Resource[] @relation("ResourceCreatedBy")
+  updatedResources Resource[] @relation("ResourceUpdatedBy")
+
+  reservations Reservation[]
+
+  @@map("users")
+}
+
+//UserSession model
+model UserSession {
+  sessionId        String   @id @default(dbgenerated("gen_random_uuid()")) @map("session_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  sessionTokenHash String   @unique @map("session_token_hash")
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+//ResourceCategory model
+model ResourceCategory {
+  categoryId             String   @id @default(dbgenerated("gen_random_uuid()")) @map("category_id") @db.Uuid
+  categoryCode           String   @unique @map("category_code") @db.VarChar(20)
+  categoryName           String   @unique @map("category_name") @db.VarChar(100)
+  description            String?
+  bookingIntervalMinutes Int      @default(15) @map("booking_interval_minutes")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy String  @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  creator User  @relation("CategoryCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
+  updater User? @relation("CategoryUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
+
+  resources Resource[]
+
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resource_categories")
+}
+
+//Resource model
+model Resource {
+  resourceId     String         @id @default(dbgenerated("gen_random_uuid()")) @map("resource_id") @db.Uuid
+  categoryId     String         @map("category_id") @db.Uuid
+  resourceCode   String         @unique @map("resource_code") @db.VarChar(30)
+  resourceName   String         @map("resource_name") @db.VarChar(150)
+  description    String?
+  location       String?        @db.VarChar(255)
+  capacity       Int?
+  resourceStatus ResourceStatus @default(AVAILABLE) @map("resource_status")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy String  @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  category ResourceCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict)
+  creator  User             @relation("ResourceCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
+  updater  User?            @relation("ResourceUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
+
+  reservations Reservation[]
+
+  @@index([categoryId])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resources")
+}
+
+//Reservation model
+model Reservation {
+  reservationId     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("reservation_id")
+  resourceId        String            @db.Uuid @map("resource_id")
+  userId            String            @db.Uuid @map("user_id")
+  reservationTitle  String            @db.VarChar(150) @map("reservation_title")
+  startTime         DateTime          @db.Timestamptz(6) @map("start_time")
+  endTime           DateTime          @db.Timestamptz(6) @map("end_time")
+  reservationStatus ReservationStatus @default(CONFIRMED) @map("reservation_status")
+  notes             String?
+  createdAt         DateTime          @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt         DateTime          @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  resource Resource @relation(fields: [resourceId], references: [resourceId], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([resourceId, startTime])
+  @@map("reservations")
+}
+
