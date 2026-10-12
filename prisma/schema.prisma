@@ -64,7 +64,8 @@ model User {
   createdResources Resource[] @relation("ResourceCreatedBy")
   updatedResources Resource[] @relation("ResourceUpdatedBy")
 
-  reservations Reservation[]
+  reservations    Reservation[]
+  reservationHold ReservationHold[]
 
   @@map("users")
 }
@@ -127,7 +128,8 @@ model Resource {
   creator  User             @relation("ResourceCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
   updater  User?            @relation("ResourceUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
 
-  reservations Reservation[]
+  reservations    Reservation[]
+  reservationHold ReservationHold[]
 
   @@index([categoryId])
   @@index([createdBy])
@@ -137,16 +139,16 @@ model Resource {
 
 //Reservation model
 model Reservation {
-  reservationId     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("reservation_id")
-  resourceId        String            @db.Uuid @map("resource_id")
-  userId            String            @db.Uuid @map("user_id")
-  reservationTitle  String            @db.VarChar(150) @map("reservation_title")
-  startTime         DateTime          @db.Timestamptz(6) @map("start_time")
-  endTime           DateTime          @db.Timestamptz(6) @map("end_time")
+  reservationId     String            @id @default(dbgenerated("gen_random_uuid()")) @map("reservation_id") @db.Uuid
+  resourceId        String            @map("resource_id") @db.Uuid
+  userId            String            @map("user_id") @db.Uuid
+  reservationTitle  String            @map("reservation_title") @db.VarChar(150)
+  startTime         DateTime          @map("start_time") @db.Timestamptz(6)
+  endTime           DateTime          @map("end_time") @db.Timestamptz(6)
   reservationStatus ReservationStatus @default(CONFIRMED) @map("reservation_status")
   notes             String?
-  createdAt         DateTime          @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt         DateTime          @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user     User     @relation(fields: [userId], references: [userId], onDelete: Restrict)
   resource Resource @relation(fields: [resourceId], references: [resourceId], onDelete: Restrict)
@@ -156,3 +158,21 @@ model Reservation {
   @@map("reservations")
 }
 
+// ReservationHold model
+model ReservationHold {
+  holdId     String   @id @default(dbgenerated("gen_random_uuid()")) @map("hold_id") @db.Uuid
+  resourceId String   @map("resource_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  startTime  DateTime @map("start_time") @db.Timestamptz(6)
+  endTime    DateTime @map("end_time") @db.Timestamptz(6)
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     User     @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  resource Resource @relation(fields: [resourceId], references: [resourceId], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([resourceId, startTime])
+  @@index([expiresAt])
+  @@map("reservation_holds")
+}
