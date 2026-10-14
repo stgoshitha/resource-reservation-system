@@ -8,8 +8,10 @@ export const registerSchema = z.object({
 
   password: z.string()
   .min(8)
-  .max(128)
-  .regex(/[!@#$%^&*(),.?":{}|<>_\-+=]/, "Password must contain at least one special character"),
+  .max(30)
+  .regex(
+    /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_\-+=]).+$/,
+    "Password must contain at least one English letter, one number, and one special character.")
 
 });
 

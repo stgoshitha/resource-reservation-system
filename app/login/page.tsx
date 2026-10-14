@@ -1,43 +1,40 @@
-
 "use client";
-
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-
+import {
+  ArrowRight,
+  CalendarCheck2,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  Mail,
+} from "lucide-react";
 type AuthUser = {
   userId: string;
   fullName: string;
   email: string;
   userRole: "ADMIN" | "USER";
 };
-
 type ApiResponse = {
   message?: string;
   user?: AuthUser;
 };
-
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const registered = searchParams.get("registered") === "1";
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (loading) return;
-
     setError("");
     setLoading(true);
-
     try {
       // Step 1: Login using existing backend API
       const loginResponse = await fetch("/api/auth/login", {
@@ -51,31 +48,31 @@ export default function LoginPage() {
           password,
         }),
       });
-
-      const loginResult: ApiResponse = await loginResponse.json();
-
+      const loginResult: ApiResponse =
+        await loginResponse.json();
       if (!loginResponse.ok) {
-        setError(loginResult.message || "Login failed. Please try again.");
+        setError(
+          loginResult.message ||
+            "Login failed. Please try again."
+        );
         return;
       }
-
       // Step 2: Verify the session
       const meResponse = await fetch("/api/auth/me", {
         method: "GET",
         credentials: "same-origin",
         cache: "no-store",
       });
-
-      const meResult: ApiResponse = await meResponse.json();
-
+      const meResult: ApiResponse =
+        await meResponse.json();
       if (!meResponse.ok || !meResult.user) {
-        setError("Unable to verify your session. Please try again.");
+        setError(
+          "Unable to verify your session. Please try again."
+        );
         return;
       }
-
       // Step 3: Redirect based on user role
       const user = meResult.user;
-
       if (user.userRole === "ADMIN") {
         router.replace("/admin");
       } else if (user.userRole === "USER") {
@@ -84,7 +81,9 @@ export default function LoginPage() {
         setError("Your account has an unsupported role.");
         return;
       }
-
+      setEmail("");
+      setPassword("");
+      setShowPassword(false);
       router.refresh();
     } catch {
       setError(
@@ -94,92 +93,112 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
-
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#F7F8FA] px-4 py-8 sm:px-6">
-      <div className="w-full max-w-[420px]">
-        {/* Logo */}
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 sm:px-6">
+      {/* Subtle background decoration */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-indigo-100/50 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -right-32 h-96 w-96 rounded-full bg-blue-100/40 blur-3xl"
+      />
+      <div className="relative z-10 w-full max-w-[440px]">
+        {/* Brand */}
         <div className="mb-8 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#3563E9] text-white">
-            <CalendarCheckIcon />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
+            <CalendarCheck2 size={26} strokeWidth={1.9} />
           </div>
-
-          <span className="text-2xl font-bold tracking-tight text-[#111827]">
-            ReserveHub
+          <span className="text-2xl font-bold tracking-tight text-slate-900">
+            Reserve<span className="text-indigo-600">Hub</span>
           </span>
         </div>
-
-        {/* Login Card */}
-        <section className="rounded-2xl border border-[#E5EAF1] bg-white px-6 py-8 shadow-[0_8px_32px_rgba(15,23,42,0.035)] sm:px-9 sm:py-10">
+        {/* Login card */}
+        <section className="rounded-2xl border border-slate-200 bg-white px-6 py-8 shadow-xl shadow-slate-900/[0.035] sm:px-9 sm:py-10">
           <div className="mb-8 text-center">
-            <h1 className="text-[26px] font-semibold tracking-tight text-[#111827]">
+            <h1 className="text-[27px] font-bold tracking-tight text-slate-900">
               Welcome back
             </h1>
-
-            <p className="mt-2 text-sm text-[#64748B]">
-              Sign in to your account to continue.
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              Sign in to manage your resource reservations.
             </p>
           </div>
-
           {/* Registration success */}
           {registered && (
             <div
               role="status"
-              className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
+              className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
             >
               Account created successfully. Please sign in.
             </div>
           )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            autoComplete="off"
+            className="space-y-5"
+          >
             {/* Email */}
             <div>
               <label
                 htmlFor="email"
-                className="mb-2 block text-sm font-medium text-[#334155]"
+                className="mb-2 block text-sm font-medium text-slate-700"
               >
                 Email address
               </label>
-
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                disabled={loading}
-                placeholder="name@example.com"
-                className="h-12 w-full rounded-xl border border-[#DCE3ED] bg-white px-4 text-base text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#3563E9] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
-              />
+              <div className="relative">
+                <Mail
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="off"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={(event) =>
+                    setEmail(event.target.value)
+                  }
+                  disabled={loading}
+                  placeholder="name@example.com"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
             </div>
-
             {/* Password */}
             <div>
               <label
                 htmlFor="password"
-                className="mb-2 block text-sm font-medium text-[#334155]"
+                className="mb-2 block text-sm font-medium text-slate-700"
               >
                 Password
               </label>
-
               <div className="relative">
+                <LockKeyhole
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
+                  autoComplete="off"
                   required
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
                   disabled={loading}
                   placeholder="Enter your password"
-                  className="h-12 w-full rounded-xl border border-[#DCE3ED] bg-white px-4 pr-12 text-base text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#3563E9] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-12 text-base text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-60"
                 />
-
                 <button
                   type="button"
                   onClick={() =>
-                    setShowPassword((value) => !value)
+                    setShowPassword((previous) => !previous)
                   }
                   disabled={loading}
                   aria-label={
@@ -188,116 +207,69 @@ export default function LoginPage() {
                       : "Show password"
                   }
                   aria-pressed={showPassword}
-                  className="absolute inset-y-0 right-3 flex items-center justify-center px-2 text-[#64748B] transition-colors hover:text-[#0F172A] disabled:opacity-60"
+                  className="absolute inset-y-0 right-2 flex w-10 items-center justify-center rounded-lg text-slate-400 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
                 >
-                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  {showPassword ? (
+                    <EyeOff size={19} />
+                  ) : (
+                    <Eye size={19} />
+                  )}
                 </button>
               </div>
             </div>
-
-            {/* Error */}
+            {/* Error message */}
             {error && (
               <div
                 role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-700"
               >
                 {error}
               </div>
             )}
-
-            {/* Submit */}
+            {/* Submit button */}
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3563E9] text-sm font-semibold text-white transition-colors hover:bg-[#2853D4] disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  <LoaderCircle
+                    size={19}
+                    className="animate-spin"
+                    aria-hidden="true"
+                  />
                   Signing in...
                 </>
               ) : (
                 <>
                   Sign in
-                  <span aria-hidden="true">→</span>
+                  <ArrowRight
+                    size={18}
+                    aria-hidden="true"
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </>
               )}
             </button>
           </form>
-
-          <p className="mt-7 text-center text-sm text-[#64748B]">
+          {/* Register link */}
+          <p className="mt-7 text-center text-sm text-slate-500">
             Don&apos;t have an account?{" "}
             <Link
               href="/register"
-              className="font-semibold text-[#3563E9] transition-colors hover:text-[#2853D4] hover:underline"
+              className="font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               Create account
             </Link>
           </p>
         </section>
-
         {/* Footer */}
-        <p className="mt-8 text-center text-xs text-[#94A3B8]">
-          © {new Date().getFullYear()} ReserveHub. All rights reserved.
+        <p className="mt-8 text-center text-xs text-slate-400">
+          © {new Date().getFullYear()} ReserveHub.
+          All rights reserved.
         </p>
       </div>
     </main>
-  );
-}
-
-function CalendarCheckIcon() {
-  return (
-    <svg
-      width="23"
-      height="23"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M7 3v4M17 3v4M3 10h18M9 16l2 2 4-4" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m3 3 18 18M10.6 5.1A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a15.4 15.4 0 0 1-3 3.7M6.5 6.5C3.7 8.3 2 12 2 12s3.5 7 10 7a10.6 10.6 0 0 0 4.1-.8" />
-      <path d="M10 10a3 3 0 0 4 4" />
-    </svg>
   );
 }

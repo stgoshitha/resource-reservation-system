@@ -1,9 +1,16 @@
-
 "use client";
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  CalendarCheck2,
+  LoaderCircle,
+  Mail,
+  UserRound,
+} from "lucide-react";
+import { FormField, FormInput, FormPassword } from "@/components/ui/form";
 
 type FieldName = "fullName" | "email" | "password";
 
@@ -27,10 +34,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<
@@ -39,7 +42,6 @@ export default function RegisterPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (loading) return;
 
     setError("");
@@ -73,9 +75,7 @@ export default function RegisterPage() {
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({
           fullName: normalizedName,
@@ -92,8 +92,7 @@ export default function RegisterPage() {
         return;
       }
 
-      // Registration creates an account, not a login session.
-      // Redirect the user to sign in.
+      // Registration does not create a login session.
       router.replace("/login?registered=1");
     } catch {
       setError("Unable to connect to the server. Please try again.");
@@ -103,294 +102,181 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#F7F8FA] px-4 py-8 sm:px-6">
-      <div className="w-full max-w-[420px]">
-        {/* Logo */}
-        <div className="mb-7 flex items-center justify-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#3563E9] text-white">
-            <CalendarCheckIcon />
-          </div>
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-indigo-100/50 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -right-32 h-96 w-96 rounded-full bg-blue-100/40 blur-3xl"
+      />
 
-          <span className="text-2xl font-bold tracking-tight text-[#111827]">
-            ReserveHub
+      <div className="relative z-10 w-full max-w-[760px]">
+        <div className="mb-5 flex items-center justify-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
+            <CalendarCheck2 size={26} strokeWidth={1.9} />
+          </div>
+          <span className="text-2xl font-bold tracking-tight text-slate-900">
+            Reserve<span className="text-indigo-600">Hub</span>
           </span>
         </div>
 
-        {/* Register Card */}
-        <section className="rounded-2xl border border-[#E5EAF1] bg-white px-6 py-8 shadow-[0_8px_32px_rgba(15,23,42,0.035)] sm:px-9 sm:py-9">
-          <div className="mb-7 text-center">
-            <h1 className="text-[26px] font-semibold tracking-tight text-[#111827]">
+        <section className="rounded-2xl border border-slate-200 bg-white px-5 py-6 shadow-xl shadow-slate-900/[0.035] sm:px-8 sm:py-7">
+          <div className="mb-5 text-center">
+            <h1 className="text-[27px] font-bold tracking-tight text-slate-900">
               Create an account
             </h1>
-
-            <p className="mt-2 text-sm text-[#64748B]">
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
               Get started with ReserveHub.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
-            <div>
-              <label
-                htmlFor="fullName"
-                className="mb-2 block text-sm font-medium text-[#334155]"
-              >
-                Full name
-              </label>
-
-              <input
-                id="fullName"
-                type="text"
-                autoComplete="name"
-                required
-                minLength={2}
-                maxLength={150}
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                disabled={loading}
-                placeholder="Enter your full name"
-                aria-invalid={Boolean(fieldErrors.fullName?.length)}
-                className="h-12 w-full rounded-xl border border-[#DCE3ED] bg-white px-4 text-base text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#3563E9] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
-              />
-
-              {fieldErrors.fullName?.map((message, index) => (
-                <p key={index} className="mt-2 text-xs text-red-600">
-                  {message}
-                </p>
-              ))}
-            </div>
-
-            {/* Email */}
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-medium text-[#334155]"
-              >
-                Email address
-              </label>
-
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                disabled={loading}
-                placeholder="name@example.com"
-                aria-invalid={Boolean(fieldErrors.email?.length)}
-                className="h-12 w-full rounded-xl border border-[#DCE3ED] bg-white px-4 text-base text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#3563E9] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
-              />
-
-              {fieldErrors.email?.map((message, index) => (
-                <p key={index} className="mt-2 text-xs text-red-600">
-                  {message}
-                </p>
-              ))}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium text-[#334155]"
-              >
-                Password
-              </label>
-
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 items-start gap-x-5 gap-y-4 sm:grid-cols-2">
+            <FormField
+              id="fullName"
+              label="Full name"
+              required
+              error={fieldErrors.fullName?.join(" ")}
+            >
               <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  maxLength={128}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  disabled={loading}
-                  placeholder="Create a password"
-                  aria-invalid={Boolean(fieldErrors.password?.length)}
-                  aria-describedby="password-hint"
-                  className="h-12 w-full rounded-xl border border-[#DCE3ED] bg-white px-4 pr-12 text-base text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#3563E9] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                <UserRound
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((value) => !value)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  aria-pressed={showPassword}
+                <FormInput
+                  id="fullName"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  minLength={2}
+                  maxLength={150}
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
                   disabled={loading}
-                  className="absolute inset-y-0 right-3 flex items-center justify-center px-2 text-[#64748B] transition-colors hover:text-[#0F172A] disabled:opacity-60"
-                >
-                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
+                  placeholder="Enter your full name"
+                  error={Boolean(fieldErrors.fullName?.length)}
+                  className="h-12 pl-11 text-base"
+                />
               </div>
+            </FormField>
 
-              <p
-                id="password-hint"
-                className="mt-2 text-xs leading-5 text-[#94A3B8]"
-              >
-                8–128 characters, including at least one special character.
-              </p>
-
-              {fieldErrors.password?.map((message, index) => (
-                <p key={index} className="mt-2 text-xs text-red-600">
-                  {message}
-                </p>
-              ))}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="mb-2 block text-sm font-medium text-[#334155]"
-              >
-                Confirm password
-              </label>
-
+            <FormField
+              id="email"
+              label="Email address"
+              required
+              error={fieldErrors.email?.join(" ")}
+            >
               <div className="relative">
-                <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  required
-                  value={confirmPassword}
-                  onChange={(event) =>
-                    setConfirmPassword(event.target.value)
-                  }
-                  disabled={loading}
-                  placeholder="Confirm your password"
-                  className="h-12 w-full rounded-xl border border-[#DCE3ED] bg-white px-4 pr-12 text-base text-[#0F172A] outline-none transition-colors placeholder:text-[#94A3B8] focus:border-[#3563E9] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                <Mail
+                  size={18}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                 />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowConfirmPassword((value) => !value)
-                  }
-                  aria-label={
-                    showConfirmPassword
-                      ? "Hide confirm password"
-                      : "Show confirm password"
-                  }
-                  aria-pressed={showConfirmPassword}
+                <FormInput
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   disabled={loading}
-                  className="absolute inset-y-0 right-3 flex items-center justify-center px-2 text-[#64748B] transition-colors hover:text-[#0F172A] disabled:opacity-60"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOffIcon />
-                  ) : (
-                    <EyeIcon />
-                  )}
-                </button>
+                  placeholder="name@example.com"
+                  error={Boolean(fieldErrors.email?.length)}
+                  className="h-12 pl-11 text-base"
+                />
               </div>
+            </FormField>
+
+            <FormField
+              id="password"
+              label="Password"
+              required
+              error={fieldErrors.password?.join(" ")}
+            >
+              <FormPassword
+                id="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                maxLength={128}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={loading}
+                placeholder="Create a password"
+                error={Boolean(fieldErrors.password?.length)}
+                className="h-12 text-base"
+              />
+            </FormField>
+
+            <FormField id="confirmPassword" label="Confirm password" required>
+              <FormPassword
+                id="confirmPassword"
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                disabled={loading}
+                placeholder="Confirm your password"
+                className="h-12 text-base"
+              />
+            </FormField>
+
             </div>
 
-            {/* API Error */}
+            <p className="text-xs text-slate-500">
+              Password must be 8–30 characters and include a special character.
+            </p>
+
             {error && (
               <div
                 role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-700"
               >
                 {error}
               </div>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3563E9] text-sm font-semibold text-white transition-colors hover:bg-[#2853D4] disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-semibold text-white shadow-sm shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
                 <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  <LoaderCircle size={19} className="animate-spin" aria-hidden="true" />
                   Creating account...
                 </>
               ) : (
                 <>
                   Create account
-                  <span aria-hidden="true">→</span>
+                  <ArrowRight
+                    size={18}
+                    aria-hidden="true"
+                    className="transition-transform group-hover:translate-x-1"
+                  />
                 </>
               )}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-[#64748B]">
+          <p className="mt-5 text-center text-sm text-slate-500">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-[#3563E9] transition-colors hover:text-[#2853D4] hover:underline"
+              className="font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline"
             >
               Sign in
             </Link>
           </p>
         </section>
 
-        <p className="mt-7 text-center text-xs text-[#94A3B8]">
+        <p className="mt-5 text-center text-xs text-slate-400">
           © {new Date().getFullYear()} ReserveHub. All rights reserved.
         </p>
       </div>
     </main>
-  );
-}
-
-function CalendarCheckIcon() {
-  return (
-    <svg
-      width="23"
-      height="23"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M7 3v4M17 3v4M3 10h18M9 16l2 2 4-4" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m3 3 18 18M10.6 5.1A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a15.4 15.4 0 0 1-3 3.7" />
-      <path d="M6.5 6.5C3.7 8.3 2 12 2 12s3.5 7 10 7a10.6 10.6 0 0 0 4.1-.8" />
-      <path d="M10 10a3 3 0 0 0 4 4" />
-    </svg>
   );
 }
