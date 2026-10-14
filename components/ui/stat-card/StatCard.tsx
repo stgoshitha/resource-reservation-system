@@ -60,75 +60,83 @@ export default function StatCard({
   return (
     <div
       className={[
-        "rounded-2xl border border-slate-200",
-        "bg-white p-5 shadow-sm",
-        "transition-shadow hover:shadow-md",
+        "group rounded-2xl border border-slate-200/90",
+        "bg-white p-5 sm:p-6",
+        "shadow-sm transition-all duration-200",
+        "hover:border-slate-300 hover:shadow-md",
         className,
       ].join(" ")}
       aria-busy={loading}
     >
       {loading ? (
         <div
-          className="animate-pulse space-y-5"
+          className="animate-pulse"
           role="status"
           aria-label={`Loading ${title}`}
         >
-          <div className="flex items-center justify-between gap-4">
-            <div className="h-4 w-28 rounded bg-slate-200" />
-            <div className="h-11 w-11 rounded-xl bg-slate-100" />
+          <div className="flex items-start justify-between gap-3">
+            <div className="h-10 w-10 rounded-xl bg-slate-100" />
+            <div className="h-6 w-24 rounded-lg bg-slate-100" />
           </div>
 
-          <div className="h-9 w-24 rounded bg-slate-200" />
-          <div className="h-4 w-36 rounded bg-slate-100" />
+          <div className="mt-5 h-9 w-20 rounded-lg bg-slate-200" />
+
+          <div className="mt-3 h-4 w-32 rounded bg-slate-100" />
+
+          <div className="mt-2 h-3 w-24 rounded bg-slate-100" />
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <h3 className="text-sm font-medium text-slate-500">
-              {title}
-            </h3>
-
-            {icon && (
+        <div className="flex h-full flex-col">
+          <div className="flex items-start justify-between gap-3">
+            {icon ? (
               <div
                 className={[
-                  "flex h-11 w-11 shrink-0",
+                  "flex h-10 w-10 shrink-0",
                   "items-center justify-center",
-                  "rounded-xl",
+                  "rounded-xl transition-transform duration-200",
+                  "group-hover:scale-105",
                   variantStyles[variant].icon,
                 ].join(" ")}
                 aria-hidden="true"
               >
                 {icon}
               </div>
+            ) : (
+              <div />
+            )}
+
+            {trendValue && (
+              <span
+                className={[
+                  "inline-flex max-w-full items-center gap-1",
+                  "rounded-md bg-slate-50 px-2 py-1",
+                  "text-xs font-semibold",
+                  trendStyles[trend],
+                ].join(" ")}
+              >
+                <TrendIcon
+                  size={14}
+                  className="shrink-0"
+                  aria-hidden="true"
+                />
+                {trendValue}
+              </span>
             )}
           </div>
 
-          <div>
-            <p className="text-3xl font-bold tracking-tight text-slate-900">
+          <div className="mt-5">
+            <p className="text-3xl font-bold tracking-tight text-slate-900 sm:text-[32px]">
               {value}
             </p>
 
-            {(trendValue || description) && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
-                {trendValue && (
-                  <span
-                    className={[
-                      "inline-flex items-center gap-1",
-                      "text-xs font-semibold",
-                      trendStyles[trend],
-                    ].join(" ")}
-                  >
-                    <TrendIcon size={15} aria-hidden="true" />
-                    {trendValue}
-                  </span>
-                )}
+            <h3 className="mt-1 text-sm font-medium text-slate-500">
+              {title}
+            </h3>
 
-                {description && (
-                  <span className="text-xs text-slate-500">
-                    {description}
-                  </span>
-                )}
-              </div>
+            {description && (
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                {description}
+              </p>
             )}
           </div>
         </div>
