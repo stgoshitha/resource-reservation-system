@@ -1,5 +1,5 @@
-import ResourceBooking from "@/components/dashboard/ResourceBooking";
+import { redirect } from "next/navigation";
 
 export default function DashboardPage() {
-  return <ResourceBooking />;
+  redirect("/dashboard/reservations/new");
 }
