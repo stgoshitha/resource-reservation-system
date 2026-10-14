@@ -41,6 +41,15 @@ enum ReservationStatus {
   @@map("reservation_status_type")
 }
 
+// OperatingHoursMode enum
+enum OperatingHoursMode {
+  STANDARD
+  WEEKLY
+  ALWAYS_OPEN
+
+  @@map("operating_hours_mode")
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -61,8 +70,10 @@ model User {
   createdCategories ResourceCategory[] @relation("CategoryCreatedBy")
   updatedCategories ResourceCategory[] @relation("CategoryUpdatedBy")
 
-  createdResources Resource[] @relation("ResourceCreatedBy")
-  updatedResources Resource[] @relation("ResourceUpdatedBy")
+  createdResources         Resource[]                 @relation("ResourceCreatedBy")
+  updatedResources         Resource[]                 @relation("ResourceUpdatedBy")
+  createdCategorySchedules ResourceCategorySchedule[] @relation("CategoryScheduleCreatedBy")
+  updatedCategorySchedules ResourceCategorySchedule[] @relation("CategoryScheduleUpdatedBy")
 
   reservations    Reservation[]
   reservationHold ReservationHold[]
@@ -87,13 +98,16 @@ model UserSession {
 
 //ResourceCategory model
 model ResourceCategory {
-  categoryId             String   @id @default(dbgenerated("gen_random_uuid()")) @map("category_id") @db.Uuid
-  categoryCode           String   @unique @map("category_code") @db.VarChar(20)
-  categoryName           String   @unique @map("category_name") @db.VarChar(100)
+  categoryId             String             @id @default(dbgenerated("gen_random_uuid()")) @map("category_id") @db.Uuid
+  categoryCode           String             @unique @map("category_code") @db.VarChar(20)
+  categoryName           String             @unique @map("category_name") @db.VarChar(100)
   description            String?
-  bookingIntervalMinutes Int      @default(15) @map("booking_interval_minutes")
-  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  bookingIntervalMinutes Int                @default(15) @map("booking_interval_minutes")
+  openingTime            String             @default("08:00") @map("opening_time") @db.VarChar(5)
+  closingTime            String             @default("18:00") @map("closing_time") @db.VarChar(5)
+  operatingHoursMode     OperatingHoursMode @default(STANDARD) @map("operating_hours_mode")
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   createdBy String  @map("created_by") @db.Uuid
   updatedBy String? @map("updated_by") @db.Uuid
@@ -101,7 +115,8 @@ model ResourceCategory {
   creator User  @relation("CategoryCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
   updater User? @relation("CategoryUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
 
-  resources Resource[]
+  resources       Resource[]
+  weeklySchedules ResourceCategorySchedule[]
 
   @@index([createdBy])
   @@index([updatedBy])
@@ -175,4 +190,30 @@ model ReservationHold {
   @@index([resourceId, startTime])
   @@index([expiresAt])
   @@map("reservation_holds")
+}
+
+// ResourceCategorySchedule model
+model ResourceCategorySchedule {
+  scheduleId  String   @id @default(dbgenerated("gen_random_uuid()")) @map("schedule_id") @db.Uuid
+  categoryId  String   @map("category_id") @db.Uuid
+  dayOfWeek   Int      @map("day_of_week") // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+  isClosed    Boolean  @default(false) @map("is_closed")
+  openingTime String   @default("08:00") @map("opening_time") @db.VarChar(5)
+  closingTime String   @default("18:00") @map("closing_time") @db.VarChar(5)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy String  @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  category ResourceCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade)
+
+  creator User  @relation("CategoryScheduleCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
+  updater User? @relation("CategoryScheduleUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
+
+  @@unique([categoryId, dayOfWeek])
+  @@index([categoryId])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resource_category_schedules")
 }
