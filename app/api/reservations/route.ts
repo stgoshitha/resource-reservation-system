@@ -4,6 +4,7 @@ import { Prisma } from "@/src/generated/prisma/client";
 import { prisma } from "@/src/lib/prisma";
 import { requireUser } from "@/src/lib/auth/permissions";
 import { createReservationSchema } from "@/src/lib/validations/reservation";
+import { isBookingTimeAligned } from "@/src/lib/config/booking-timezone";
 
 // Create a reservation after validating resource availability
 export async function POST(request: Request) {
@@ -108,14 +109,14 @@ export async function POST(request: Request) {
     }
 
     // Enforce the category's booking interval and minimum duration
-    const intervalMs =
-      resource.category.bookingIntervalMinutes * 60 * 1000;
+    const interval = resource.category.bookingIntervalMinutes;
+    const intervalMs = interval * 60_000;
 
     const durationMs = end.getTime() - start.getTime();
 
     if (
-      start.getTime() % intervalMs !== 0 ||
-      end.getTime() % intervalMs !== 0 ||
+      !isBookingTimeAligned(start, interval) ||
+      !isBookingTimeAligned(end, interval) ||
       durationMs < intervalMs
     ) {
       return NextResponse.json(

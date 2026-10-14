@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/src/lib/prisma";
 import { requireUser } from "@/src/lib/auth/permissions";
+import { isBookingTimeAligned } from "@/src/lib/config/booking-timezone";
 
 interface RouteContext {
   params: Promise<{
@@ -131,17 +132,11 @@ export async function GET(
     }
 
     // Validate slot boundaries using Sri Lanka's local booking time
-    const intervalMs =
-      resource.category.bookingIntervalMinutes * 60 * 1000;
-
-    const sriLankaOffsetMs = 330 * 60 * 1000;
-
-    const durationMs = end.getTime() - start.getTime();
+    const interval = resource.category.bookingIntervalMinutes;
 
     if (
-      (start.getTime() + sriLankaOffsetMs) % intervalMs !== 0 ||
-      (end.getTime() + sriLankaOffsetMs) % intervalMs !== 0 ||
-      durationMs < intervalMs
+      !isBookingTimeAligned(start, interval) ||
+      !isBookingTimeAligned(end, interval)
     ) {
       return NextResponse.json(
         {
