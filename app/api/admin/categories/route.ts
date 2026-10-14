@@ -7,7 +7,7 @@ import { createCategorySchema } from "@/src/lib/validations/category";
 
 export async function POST(request: Request) {
   try {
-    //Verify authentication and ADMIN authorization
+    // Verify authentication and ADMIN authorization
     const auth = await requireAdmin();
 
     if (auth.error === "UNAUTHORIZED") {
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       );
     }
 
-    //Basic same-origin protection
+    // Basic same-origin protection
     const origin = request.headers.get("origin");
 
     if (origin && origin !== new URL(request.url).origin) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       );
     }
 
-    //Parse JSON safely
+    // Parse JSON safely
     let body: unknown;
 
     try {
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       );
     }
 
-    //Validate the incoming category data
+    // Validate the incoming category and weekly schedule data
     const validation = createCategorySchema.safeParse(body);
 
     if (!validation.success) {
@@ -66,31 +66,39 @@ export async function POST(request: Request) {
       );
     }
 
-    //Validate the incoming category data
+    const { weeklySchedules, ...categoryData } = validation.data;
+    const userId = auth.user.userId;
+
+    // Create category and its weekly schedules atomically
     const category = await prisma.resourceCategory.create({
       data: {
-        ...validation.data,
-        createdBy: auth.user.userId,
+        ...categoryData,
+        createdBy: userId,
+        ...(categoryData.operatingHoursMode === "WEEKLY" && weeklySchedules
+          ? {
+              weeklySchedules: {
+                create: weeklySchedules.map((schedule) => ({
+                  ...schedule,
+                  createdBy: userId,
+                })),
+              },
+            }
+          : {}),
       },
+      include: { weeklySchedules: { orderBy: { dayOfWeek: "asc" } } },
     });
 
     return NextResponse.json(
-      {
-        message: "Category created successfully",
-        category,
-      },
+      { message: "Category created successfully", category },
       { status: 201 }
     );
   } catch (error) {
-    //Handle duplicate category code or name
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        {
-          message: "Category code or name already exists",
-        },
+        { message: "Category code or name already exists" },
         { status: 409 }
       );
     }
@@ -104,10 +112,9 @@ export async function POST(request: Request) {
   }
 }
 
-
 export async function GET(request: Request) {
   try {
-    //Verify ADMIN authorization
+    // Verify ADMIN authorization
     const auth = await requireAdmin();
 
     if (auth.error === "UNAUTHORIZED") {
@@ -124,7 +131,7 @@ export async function GET(request: Request) {
       );
     }
 
-    //Read and validate query parameters
+    // Read and validate query parameters
     const { searchParams } = new URL(request.url);
 
     const search = (searchParams.get("search") ?? "").trim();
@@ -163,41 +170,30 @@ export async function GET(request: Request) {
       );
     }
 
-    //Build a type-safe Prisma filter
+    // Build a type-safe Prisma filter
     const where: Prisma.ResourceCategoryWhereInput = search
       ? {
           OR: [
-            {
-              categoryCode: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
-            {
-              categoryName: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
+            { categoryCode: { contains: search, mode: "insensitive" } },
+            { categoryName: { contains: search, mode: "insensitive" } },
           ],
         }
       : {};
 
-    //Fetch matching categories and total count
+    // Fetch matching categories and total count
     const [categories, total] = await prisma.$transaction([
       prisma.resourceCategory.findMany({
         where,
-        orderBy: [
-          { createdAt: "desc" },
-          { categoryId: "desc" },
-        ],
+        orderBy: [{ createdAt: "desc" }, { categoryId: "desc" }],
         skip,
         take: limit,
+        include: {
+          weeklySchedules: { orderBy: { dayOfWeek: "asc" } },
+        },
       }),
       prisma.resourceCategory.count({ where }),
     ]);
 
-    //Return a consistent paginated response
     return NextResponse.json(
       {
         message: "Categories retrieved successfully",
