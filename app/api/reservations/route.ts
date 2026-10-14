@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { Prisma } from "@/src/generated/prisma/client";
 import { prisma } from "@/src/lib/prisma";
@@ -54,156 +55,231 @@ export async function POST(request: Request) {
       );
     }
 
-    const { resourceId, title, startTime, endTime, notes } = validation.data;
+    const { resourceId, holdId, title, startTime, endTime, notes } =
+      validation.data;
     const start = new Date(startTime);
     const end = new Date(endTime);
 
-    // Retrieve the resource and its category-specific booking rules
-    const resource = await prisma.resource.findUnique({
-      where: { resourceId },
-      select: {
-        resourceId: true,
-        resourceStatus: true,
-        category: {
+    // NEW: Lock the resource to prevent concurrent booking conflicts
+    const result = await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`
+          SELECT resource_id
+          FROM resources
+          WHERE resource_id = ${resourceId}::uuid
+          FOR UPDATE
+        `;
+
+        // Retrieve the resource and its category-specific booking rules
+        const resource = await tx.resource.findUnique({
+          where: { resourceId },
           select: {
-            bookingIntervalMinutes: true,
-            operatingHoursMode: true,
-            openingTime: true,
-            closingTime: true,
-            weeklySchedules: {
+            resourceId: true,
+            resourceStatus: true,
+            category: {
               select: {
-                dayOfWeek: true,
-                isClosed: true,
+                bookingIntervalMinutes: true,
+                operatingHoursMode: true,
                 openingTime: true,
                 closingTime: true,
+                weeklySchedules: {
+                  select: {
+                    dayOfWeek: true,
+                    isClosed: true,
+                    openingTime: true,
+                    closingTime: true,
+                  },
+                },
               },
             },
           },
-        },
-      },
-    });
+        });
 
-    if (!resource) {
-      return NextResponse.json(
-        { message: "Resource not found" },
-        { status: 404 }
-      );
-    }
+        if (!resource) {
+          return NextResponse.json(
+            { message: "Resource not found" },
+            { status: 404 }
+          );
+        }
 
-    // Prevent reservations for resources that are not available for booking
-    if (resource.resourceStatus === "MAINTENANCE") {
-      return NextResponse.json(
-        {
-          message:
-            "This resource is currently under maintenance and cannot be reserved.",
-        },
-        { status: 409 }
-      );
-    }
-    if (resource.resourceStatus === "INACTIVE") {
-      return NextResponse.json(
-        {
-          message:
-            "This resource is currently inactive and cannot be reserved.",
-        },
-        { status: 409 }
-      );
-    }
+        // Prevent reservations for resources that are not available for booking
+        if (resource.resourceStatus === "MAINTENANCE") {
+          return NextResponse.json(
+            {
+              message:
+                "This resource is currently under maintenance and cannot be reserved.",
+            },
+            { status: 409 }
+          );
+        }
+        if (resource.resourceStatus === "INACTIVE") {
+          return NextResponse.json(
+            {
+              message:
+                "This resource is currently inactive and cannot be reserved.",
+            },
+            { status: 409 }
+          );
+        }
 
-    // Enforce the category's booking interval and minimum duration
-    const interval = resource.category.bookingIntervalMinutes;
-    const intervalMs = interval * 60_000;
-    const durationMs = end.getTime() - start.getTime();
-    if (
-      !isBookingTimeAligned(start, interval) ||
-      !isBookingTimeAligned(end, interval) ||
-      durationMs < intervalMs
-    ) {
-      return NextResponse.json(
-        {
-          message: "Requested time does not match the resource booking interval",
-          bookingIntervalMinutes: resource.category.bookingIntervalMinutes,
-        },
-        { status: 400 }
-      );
-    }
+        // Enforce the category's booking interval and minimum duration
+        const interval = resource.category.bookingIntervalMinutes;
+        const intervalMs = interval * 60_000;
+        const durationMs = end.getTime() - start.getTime();
+        if (
+          interval <= 0 ||
+          !isBookingTimeAligned(start, interval) ||
+          !isBookingTimeAligned(end, interval) ||
+          durationMs < intervalMs
+        ) {
+          return NextResponse.json(
+            {
+              message:
+                "Requested time does not match the resource booking interval",
+              bookingIntervalMinutes: resource.category.bookingIntervalMinutes,
+            },
+            { status: 400 }
+          );
+        }
 
-    // Enforce category operating hours, including closed days and overnight windows
-    if (!isWithinOperatingHours(start, end, resource.category)) {
-      return NextResponse.json(
-        { message: "Requested time is outside the resource operating hours" },
-        { status: 409 }
-      );
-    }
+        // Enforce category operating hours, including closed days and overnight windows
+        if (!isWithinOperatingHours(start, end, resource.category)) {
+          return NextResponse.json(
+            { message: "Requested time is outside the resource operating hours" },
+            { status: 409 }
+          );
+        }
 
-    // Define the overlapping time range using exclusive end boundaries
-    const overlap = {
-      startTime: { lt: end },
-      endTime: { gt: start },
-    };
+        // NEW: Ensure the booking is still in the future
+        if (start.getTime() <= Date.now()) {
+          return NextResponse.json(
+            { message: "Reservation start time must be in the future" },
+            { status: 400 }
+          );
+        }
 
-    // Reject bookings that conflict with active temporary holds
-    const activeHold = await prisma.reservationHold.findFirst({
-      where: {
-        resourceId,
-        expiresAt: { gt: new Date() },
-        ...overlap,
-      },
-      select: { holdId: true },
-    });
-    if (activeHold) {
-      return NextResponse.json(
-        { message: "This time slot is temporarily held by another booking." },
-        { status: 409 }
-      );
-    }
+        // NEW: Validate hold ownership, expiration, resource, and selected time
+        if (holdId) {
+          const hold = await tx.reservationHold.findUnique({
+            where: { holdId },
+          });
 
-    // Check confirmed reservations before attempting to create a new booking
-    const existingReservation = await prisma.reservation.findFirst({
-      where: {
-        resourceId,
-        reservationStatus: "CONFIRMED",
-        ...overlap,
-      },
-      select: { reservationId: true },
-    });
-    if (existingReservation) {
-      return NextResponse.json(
-        { message: "This resource is already booked for the selected time." },
-        { status: 409 }
-      );
-    }
+          if (!hold || hold.userId !== auth.user.userId) {
+            return NextResponse.json(
+              { message: "Reservation hold not found" },
+              { status: 404 }
+            );
+          }
 
-    // The PostgreSQL exclusion constraint provides final overlap protection
-    const reservation = await prisma.reservation.create({
-      data: {
-        resourceId,
-        userId: auth.user.userId,
-        reservationTitle: title,
-        startTime: start,
-        endTime: end,
-        reservationStatus: "CONFIRMED",
-        notes,
-      },
-      include: {
-        resource: {
-          select: {
-            resourceId: true,
-            resourceCode: true,
-            resourceName: true,
+          if (hold.expiresAt <= new Date()) {
+            return NextResponse.json(
+              { message: "Reservation hold has expired" },
+              { status: 409 }
+            );
+          }
+
+          if (
+            hold.resourceId !== resourceId ||
+            hold.startTime.getTime() !== start.getTime() ||
+            hold.endTime.getTime() !== end.getTime()
+          ) {
+            return NextResponse.json(
+              { message: "Reservation details do not match the hold" },
+              { status: 400 }
+            );
+          }
+        }
+
+        // Define the overlapping time range using exclusive end boundaries
+        const overlap = {
+          startTime: { lt: end },
+          endTime: { gt: start },
+        };
+
+        // Reject bookings that conflict with active temporary holds
+        const activeHold = await tx.reservationHold.findFirst({
+          where: {
+            resourceId,
+            expiresAt: { gt: new Date() },
+            // NEW: Exclude the user's validated hold from conflict checking
+            ...(holdId ? { holdId: { not: holdId } } : {}),
+            ...overlap,
           },
-        },
-      },
-    });
+          select: { holdId: true },
+        });
+        if (activeHold) {
+          return NextResponse.json(
+            { message: "This time slot is temporarily held by another booking." },
+            { status: 409 }
+          );
+        }
 
-    return NextResponse.json(
-      { message: "Reservation created successfully", reservation },
-      { status: 201 }
+        // Check confirmed reservations before attempting to create a new booking
+        const existingReservation = await tx.reservation.findFirst({
+          where: {
+            resourceId,
+            reservationStatus: "CONFIRMED",
+            ...overlap,
+          },
+          select: { reservationId: true },
+        });
+        if (existingReservation) {
+          return NextResponse.json(
+            { message: "This resource is already booked for the selected time." },
+            { status: 409 }
+          );
+        }
+
+        // The PostgreSQL exclusion constraint provides final overlap protection
+        const reservation = await tx.reservation.create({
+          data: {
+            resourceId,
+            userId: auth.user.userId,
+            reservationTitle: title,
+            startTime: start,
+            endTime: end,
+            reservationStatus: "CONFIRMED",
+            notes,
+          },
+          include: {
+            resource: {
+              select: {
+                resourceId: true,
+                resourceCode: true,
+                resourceName: true,
+              },
+            },
+          },
+        });
+
+        // NEW: Remove the temporary hold after successful reservation creation
+        if (holdId) {
+          await tx.reservationHold.delete({
+            where: { holdId },
+          });
+        }
+
+        return NextResponse.json(
+          { message: "Reservation created successfully", reservation },
+          { status: 201 }
+        );
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        maxWait: 5000,
+        timeout: 10000,
+      }
     );
+
+    return result;
   } catch (error) {
     // Translate known database errors into meaningful API responses
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2004" || error.code === "P2010") {
+      if (
+        error.code === "P2004" ||
+        error.code === "P2010" ||
+        error.code === "P2034"
+      ) {
         return NextResponse.json(
           { message: "This resource is already booked for the selected time." },
           { status: 409 }

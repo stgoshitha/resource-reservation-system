@@ -3,6 +3,7 @@ import { z } from "zod";
 export const createReservationSchema = z
   .object({
     resourceId: z.uuid(),
+    holdId: z.uuid().optional(),
 
     title: z
       .string()

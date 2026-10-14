@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -34,6 +35,7 @@ type Resource = {
     bookingIntervalMinutes: number;
   };
 };
+type ReservationHold = { holdId: string; expiresAt: string; resourceId: string; startTime: string; endTime: string };
 const PAGE_SIZE = 6;
 async function readResponse(response: Response): Promise<Record<string, unknown>> {
   try {
@@ -60,6 +62,82 @@ export default function ResourceBooking() {
   const [success, setSuccess] = useState(false);
   const [scheduleRefresh, setScheduleRefresh] = useState(0);
   const [step, setStep] = useState(1);
+  const [hold, setHold] = useState<ReservationHold | null>(null);
+  const [holdSecondsLeft, setHoldSecondsLeft] = useState(0);
+  const holdRef = useRef<ReservationHold | null>(null);
+  const holdingRef = useRef(false);
+  const confirmingRef = useRef(false);
+  const holdRequestRef = useRef(0);
+  const holdExpiredRef = useRef(false);
+  const warnedHoldRef = useRef({ holdId: "", twoMinutes: false, thirtySeconds: false });
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  function setActiveHold(value: ReservationHold | null) {
+    holdRef.current = value;
+    setHold(value);
+    setHoldSecondsLeft(value ? Math.max(0, Math.ceil((new Date(value.expiresAt).getTime() - Date.now()) / 1000)) : 0);
+  }
+  async function releaseHold() {
+    holdRequestRef.current += 1;
+    const current = holdRef.current;
+    setActiveHold(null);
+    if (!current) return;
+    try {
+      await fetch(`/api/reservation-holds/${encodeURIComponent(current.holdId)}`, { method: "DELETE" });
+    } catch {
+      // Expired holds are also rejected by the server during confirmation.
+    }
+  }
+  useEffect(() => {
+    if (!hold) return;
+    const update = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(hold.expiresAt).getTime() - Date.now()) / 1000));
+      setHoldSecondsLeft(seconds);
+      if (seconds === 0 && !holdExpiredRef.current && !confirmingRef.current) {
+        holdExpiredRef.current = true;
+        holdRequestRef.current += 1;
+        holdRef.current = null;
+        setHold(null);
+        setStartTime("");
+        setEndTime("");
+        setScheduleRefresh((value) => value + 1);
+        setStep(2);
+        toast.error("Your 5-minute hold expired. Please choose a time slot again.");
+      }
+    };
+    update();
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [hold]);
+  const countdown = `${String(Math.floor(holdSecondsLeft / 60)).padStart(2, "0")}:${String(holdSecondsLeft % 60).padStart(2, "0")}`;
+  // Notify once at each threshold, even if the timer skips a second in a background tab.
+  useEffect(() => {
+    if (!hold || holdSecondsLeft <= 0 || confirmingRef.current) return;
+    if (warnedHoldRef.current.holdId !== hold.holdId) {
+      warnedHoldRef.current = { holdId: hold.holdId, twoMinutes: false, thirtySeconds: false };
+    }
+    if (holdSecondsLeft <= 120 && !warnedHoldRef.current.twoMinutes) {
+      warnedHoldRef.current.twoMinutes = true;
+      toast.warning("Only 2 minutes left to confirm your reservation!", {
+        description: "Your selected time slot will be released when the countdown ends.",
+        duration: 6000,
+      });
+    }
+    if (holdSecondsLeft <= 30 && !warnedHoldRef.current.thirtySeconds) {
+      warnedHoldRef.current.thirtySeconds = true;
+      toast.error("Only 30 seconds remaining!", {
+        description: "Please confirm your reservation now.",
+        duration: 8000,
+      });
+    }
+  }, [hold, holdSecondsLeft]);
+  const holdProgress = Math.max(0, Math.min(100, (holdSecondsLeft / 300) * 100));
+  const progressColor = holdSecondsLeft <= 30 ? "bg-red-600" : holdSecondsLeft <= 120 ? "bg-amber-500" : "bg-emerald-600";
+  const timerColor = holdSecondsLeft <= 30
+    ? "border-red-200 bg-red-50 text-red-800"
+    : holdSecondsLeft <= 120
+      ? "border-amber-300 bg-amber-50 text-amber-900"
+      : "border-emerald-200 bg-emerald-50 text-emerald-900";
   useEffect(() => {
     let active = true;
     (async () => {
@@ -108,6 +186,7 @@ export default function ResourceBooking() {
   function selectResource(id: string) {
     if (saving) return;
     if (id !== resourceId) {
+      void releaseHold();
       setResourceId(id);
       setStartTime("");
       setEndTime("");
@@ -117,6 +196,10 @@ export default function ResourceBooking() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   const handleGridSelection = useCallback((start: string, end: string) => {
+    const current = holdRef.current;
+    if (current && (current.startTime !== start || current.endTime !== end)) {
+      void releaseHold();
+    }
     setStartTime(start);
     setEndTime(end);
     setSuccess(false);
@@ -154,12 +237,20 @@ export default function ResourceBooking() {
     if (notes.trim().length > 1000) return toast.error("Notes cannot exceed 1000 characters.");
     try {
       const times = getTimeRange();
+      if (!hold || holdSecondsLeft <= 0 || new Date(hold.expiresAt).getTime() <= Date.now()) {
+        throw new Error("Your booking hold expired. Please select a time again.");
+      }
+      if (hold.resourceId !== resourceId || hold.startTime !== times.startTime || hold.endTime !== times.endTime) {
+        throw new Error("Booking details changed. Please select a time again.");
+      }
       setSaving(true);
+      confirmingRef.current = true;
       const response = await fetch("/api/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resourceId,
+          holdId: hold.holdId,
           title: title.trim(),
           ...times,
           ...(notes.trim() ? { notes: notes.trim() } : {}),
@@ -168,6 +259,7 @@ export default function ResourceBooking() {
       const data = await readResponse(response);
       if (!response.ok) {
         if (response.status === 409) {
+          void releaseHold();
           setScheduleRefresh((value) => value + 1);
           setStep(2);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -175,6 +267,8 @@ export default function ResourceBooking() {
         }
         throw new Error(messageOf(data, "Reservation could not be created"));
       }
+      holdRequestRef.current += 1;
+      setActiveHold(null);
       toast.success("Reservation confirmed successfully!");
       setSuccess(true);
       setScheduleRefresh((value) => value + 1);
@@ -187,6 +281,7 @@ export default function ResourceBooking() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Reservation could not be created");
     } finally {
+      confirmingRef.current = false;
       setSaving(false);
     }
   }
@@ -196,12 +291,43 @@ export default function ResourceBooking() {
   const formatTime = (value: string) => value ? new Intl.DateTimeFormat("en-LK", {
     timeZone: "Asia/Colombo", dateStyle: "medium", timeStyle: "short",
   }).format(new Date(value)) : "Not selected";
-  function nextStep() {
+  async function nextStep() {
     if (step === 1 && !selected) return toast.error("Select a resource first.");
     if (step === 2) {
       if (!validSelection) return toast.error("Select a date and available time slots.");
-      try { getTimeRange(); } catch (error) {
+      let times: { startTime: string; endTime: string };
+      try { times = getTimeRange(); } catch (error) {
         return toast.error(error instanceof Error ? error.message : "Invalid time range");
+      }
+      if (holdingRef.current) return;
+      holdingRef.current = true;
+      setSaving(true);
+      const requestId = ++holdRequestRef.current;
+      try {
+        const response = await fetch("/api/reservation-holds", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resourceId, ...times }),
+        });
+        const data = await readResponse(response);
+        if (!response.ok) {
+          if (response.status === 409) setScheduleRefresh((value) => value + 1);
+          throw new Error(messageOf(data, "Could not hold the selected time slot"));
+        }
+        const result = data.hold as ReservationHold | undefined;
+        if (!result?.holdId || !result?.expiresAt) throw new Error("Invalid hold response");
+        if (requestId !== holdRequestRef.current) {
+          void fetch(`/api/reservation-holds/${encodeURIComponent(result.holdId)}`, { method: "DELETE" });
+          return;
+        }
+        holdExpiredRef.current = false;
+        setActiveHold({ ...result, resourceId, ...times });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not hold time slot");
+        return;
+      } finally {
+        holdingRef.current = false;
+        setSaving(false);
       }
     }
     if (step === 3 && !validDetails) return toast.error("Enter a title (2–150 characters) and keep notes within 1000 characters.");
@@ -219,6 +345,18 @@ export default function ResourceBooking() {
           Reservation created successfully. <Link href="/dashboard/reservations" className="font-semibold underline">View My Reservations</Link>
         </div>
       )}
+      {hold && step >= 3 && (
+        <div role="status" className={`rounded-xl border px-4 py-3 text-sm ${timerColor}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="flex items-center gap-2"><Clock3 size={17} /> {holdSecondsLeft <= 30 ? "Urgent: your hold is about to expire!" : holdSecondsLeft <= 120 ? "Please confirm soon — your hold is running out." : "Your selected slot is held for 5 minutes."}</span>
+            <span className="font-mono text-lg font-bold tabular-nums">{countdown}</span>
+          </div>
+          <div role="progressbar" aria-label="Reservation hold time remaining" aria-valuemin={0} aria-valuemax={300} aria-valuenow={holdSecondsLeft} className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-200/80">
+            <div className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${progressColor}`} style={{ width: `${holdProgress}%` }} />
+          </div>
+          <p className="mt-1.5 text-right text-xs opacity-80">{Math.ceil(holdProgress)}% time remaining</p>
+        </div>
+      )}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-slate-900">New Reservation</h2>
@@ -232,7 +370,7 @@ export default function ResourceBooking() {
             const number = index + 1;
             return (
               <button key={label} type="button" disabled={number >= step || saving}
-                onClick={() => setStep(number)}
+                onClick={() => { if (number <= 2 && holdRef.current) void releaseHold(); setStep(number); }}
                 className="flex flex-col items-center gap-2 rounded-lg p-1 text-center disabled:cursor-default">
                 <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${number < step ? "bg-emerald-100 text-emerald-700" : number === step ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400"}`}>
                   {number < step ? "✓" : number}
@@ -288,7 +426,6 @@ export default function ResourceBooking() {
             >
               All Resources
             </button>
-
             {categories.map(([id, name]) => (
               <button
                 key={id}
@@ -466,7 +603,7 @@ export default function ResourceBooking() {
             resourceId={selected.resourceId}
             intervalMinutes={selected.category.bookingIntervalMinutes}
             refreshKey={scheduleRefresh}
-            disabled={saving}
+            disabled={saving || Boolean(hold)}
             onSelectionChange={handleGridSelection}
           />
         </section>
@@ -510,7 +647,7 @@ export default function ResourceBooking() {
             ))}
           </dl>
           <div className="flex flex-wrap gap-3">
-            <Button type="submit" loading={saving} disabled={saving}>Confirm Reservation</Button>
+            <Button type="submit" loading={saving} disabled={saving || !hold || holdSecondsLeft <= 0}>Confirm Reservation</Button>
           </div>
           <p className="text-xs text-slate-500">The server verifies availability when you confirm and prevents overlapping bookings.</p>
         </form>

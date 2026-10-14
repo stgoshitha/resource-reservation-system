@@ -64,9 +64,18 @@ export async function GET(request: Request, { params }: Context) {
       operatingHoursMode: resource.category.operatingHoursMode,
       bookingIntervalMinutes: resource.category.bookingIntervalMinutes,
       operatingWindows: getOperatingWindowsForDate(date, resource.category),
-      busy: [...reservations, ...holds].map((item) => ({
-        startTime: item.startTime.toISOString(), endTime: item.endTime.toISOString(),
-      })),
+      busy: [
+        ...reservations.map((item) => ({
+          startTime: item.startTime.toISOString(),
+          endTime: item.endTime.toISOString(),
+          status: "RESERVED" as const,
+        })),
+        ...holds.map((item) => ({
+          startTime: item.startTime.toISOString(),
+          endTime: item.endTime.toISOString(),
+          status: "HELD" as const,
+        })),
+      ],
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Get resource schedule failed:", error);
