@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { requireUser } from "@/src/lib/auth/permissions";
 import { isBookingTimeAligned } from "@/src/lib/config/booking-timezone";
+import { isWithinOperatingHours } from "@/src/lib/utils/operating-hours";
 
 interface RouteContext {
   params: Promise<{
@@ -94,6 +95,12 @@ export async function GET(
         category: {
           select: {
             bookingIntervalMinutes: true,
+            operatingHoursMode: true,
+            openingTime: true,
+            closingTime: true,
+            weeklySchedules: {
+              select: { dayOfWeek: true, isClosed: true, openingTime: true, closingTime: true },
+            },
           },
         },
       },
@@ -145,6 +152,17 @@ export async function GET(
             "Requested time does not match the booking interval",
           bookingIntervalMinutes:
             resource.category.bookingIntervalMinutes,
+        },
+        { status: 200 }
+      );
+    }
+
+    if (!isWithinOperatingHours(start, end, resource.category)) {
+      return NextResponse.json(
+        {
+          available: false,
+          reason: "Requested time is outside the category operating hours",
+          operatingHoursMode: resource.category.operatingHoursMode,
         },
         { status: 200 }
       );

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { requireUser } from "@/src/lib/auth/permissions";
+import { getOperatingWindowsForDate, localDayStart } from "@/src/lib/utils/operating-hours";
 
 type Context = { params: Promise<{ resourceId: string }> };
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -20,14 +21,28 @@ export async function GET(request: Request, { params }: Context) {
     if (!uuidRegex.test(resourceId) || !dateRegex.test(date)) {
       return NextResponse.json({ message: "Invalid resource ID or date" }, { status: 400 });
     }
-    const start = new Date(`${date}T00:00:00+05:30`);
-    if (!Number.isFinite(start.getTime()) || new Date(start.getTime() + 330 * 60_000).toISOString().slice(0, 10) !== date) {
+    const start = localDayStart(date);
+    if (!start) {
       return NextResponse.json({ message: "Invalid date" }, { status: 400 });
     }
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
     const resource = await prisma.resource.findUnique({
       where: { resourceId },
-      select: { resourceId: true, resourceStatus: true },
+      select: {
+        resourceId: true,
+        resourceStatus: true,
+        category: {
+          select: {
+            bookingIntervalMinutes: true,
+            operatingHoursMode: true,
+            openingTime: true,
+            closingTime: true,
+            weeklySchedules: {
+              select: { dayOfWeek: true, isClosed: true, openingTime: true, closingTime: true },
+            },
+          },
+        },
+      },
     });
     if (!resource) return NextResponse.json({ message: "Resource not found" }, { status: 404 });
     if (resource.resourceStatus !== "AVAILABLE") {
@@ -46,6 +61,9 @@ export async function GET(request: Request, { params }: Context) {
     ]);
     return NextResponse.json({
       date,
+      operatingHoursMode: resource.category.operatingHoursMode,
+      bookingIntervalMinutes: resource.category.bookingIntervalMinutes,
+      operatingWindows: getOperatingWindowsForDate(date, resource.category),
       busy: [...reservations, ...holds].map((item) => ({
         startTime: item.startTime.toISOString(), endTime: item.endTime.toISOString(),
       })),

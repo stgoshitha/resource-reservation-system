@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/src/generated/prisma/client";
-
 import { prisma } from "@/src/lib/prisma";
 import { requireUser } from "@/src/lib/auth/permissions";
 import { createReservationSchema } from "@/src/lib/validations/reservation";
 import { isBookingTimeAligned } from "@/src/lib/config/booking-timezone";
+import { isWithinOperatingHours } from "@/src/lib/utils/operating-hours";
 
 // Create a reservation after validating resource availability
 export async function POST(request: Request) {
   try {
     // Ensure the request is made by an authenticated user
     const auth = await requireUser();
-
     if (auth.error === "UNAUTHORIZED" || !auth.user) {
       return NextResponse.json(
         { message: "Authentication required" },
         { status: 401 }
       );
     }
-
     if (auth.error === "FORBIDDEN") {
       return NextResponse.json(
         { message: "Access denied" },
@@ -28,7 +26,6 @@ export async function POST(request: Request) {
 
     // Verify the request origin
     const origin = request.headers.get("origin");
-
     if (origin && origin !== new URL(request.url).origin) {
       return NextResponse.json(
         { message: "Invalid request origin" },
@@ -38,7 +35,6 @@ export async function POST(request: Request) {
 
     // Parse the request body and validate the reservation details
     let body: unknown;
-
     try {
       body = await request.json();
     } catch {
@@ -47,9 +43,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
     const validation = createReservationSchema.safeParse(body);
-
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -60,9 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { resourceId, title, startTime, endTime, notes } =
-      validation.data;
-
+    const { resourceId, title, startTime, endTime, notes } = validation.data;
     const start = new Date(startTime);
     const end = new Date(endTime);
 
@@ -75,6 +67,17 @@ export async function POST(request: Request) {
         category: {
           select: {
             bookingIntervalMinutes: true,
+            operatingHoursMode: true,
+            openingTime: true,
+            closingTime: true,
+            weeklySchedules: {
+              select: {
+                dayOfWeek: true,
+                isClosed: true,
+                openingTime: true,
+                closingTime: true,
+              },
+            },
           },
         },
       },
@@ -97,7 +100,6 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
-
     if (resource.resourceStatus === "INACTIVE") {
       return NextResponse.json(
         {
@@ -111,9 +113,7 @@ export async function POST(request: Request) {
     // Enforce the category's booking interval and minimum duration
     const interval = resource.category.bookingIntervalMinutes;
     const intervalMs = interval * 60_000;
-
     const durationMs = end.getTime() - start.getTime();
-
     if (
       !isBookingTimeAligned(start, interval) ||
       !isBookingTimeAligned(end, interval) ||
@@ -121,12 +121,18 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json(
         {
-          message:
-            "Requested time does not match the resource booking interval",
-          bookingIntervalMinutes:
-            resource.category.bookingIntervalMinutes,
+          message: "Requested time does not match the resource booking interval",
+          bookingIntervalMinutes: resource.category.bookingIntervalMinutes,
         },
         { status: 400 }
+      );
+    }
+
+    // Enforce category operating hours, including closed days and overnight windows
+    if (!isWithinOperatingHours(start, end, resource.category)) {
+      return NextResponse.json(
+        { message: "Requested time is outside the resource operating hours" },
+        { status: 409 }
       );
     }
 
@@ -145,13 +151,9 @@ export async function POST(request: Request) {
       },
       select: { holdId: true },
     });
-
     if (activeHold) {
       return NextResponse.json(
-        {
-          message:
-            "This time slot is temporarily held by another booking.",
-        },
+        { message: "This time slot is temporarily held by another booking." },
         { status: 409 }
       );
     }
@@ -165,12 +167,9 @@ export async function POST(request: Request) {
       },
       select: { reservationId: true },
     });
-
     if (existingReservation) {
       return NextResponse.json(
-        {
-          message: "This resource is already booked for the selected time.",
-        },
+        { message: "This resource is already booked for the selected time." },
         { status: 409 }
       );
     }
@@ -198,28 +197,18 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      {
-        message: "Reservation created successfully",
-        reservation,
-      },
+      { message: "Reservation created successfully", reservation },
       { status: 201 }
     );
   } catch (error) {
     // Translate known database errors into meaningful API responses
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (
-        error.code === "P2004" ||
-        error.code === "P2010"
-      ) {
+      if (error.code === "P2004" || error.code === "P2010") {
         return NextResponse.json(
-          {
-            message:
-              "This resource is already booked for the selected time.",
-          },
+          { message: "This resource is already booked for the selected time." },
           { status: 409 }
         );
       }
-
       if (error.code === "P2003") {
         return NextResponse.json(
           { message: "Invalid resource or user reference" },
@@ -227,9 +216,7 @@ export async function POST(request: Request) {
         );
       }
     }
-
     console.error("Create reservation failed:", error);
-
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
@@ -242,7 +229,6 @@ export async function GET(request: Request) {
   try {
     // Restrict reservation access to authenticated users
     const auth = await requireUser();
-
     if (auth.error || !auth.user) {
       return NextResponse.json(
         { message: "Authentication required" },
@@ -252,10 +238,8 @@ export async function GET(request: Request) {
 
     // Read and validate pagination parameters
     const { searchParams } = new URL(request.url);
-
     const page = Number(searchParams.get("page") ?? "1");
     const limit = Number(searchParams.get("limit") ?? "10");
-
     if (
       !Number.isInteger(page) ||
       page < 1 ||
@@ -270,9 +254,7 @@ export async function GET(request: Request) {
     }
 
     // Enforce ownership by filtering with the authenticated user's ID
-    const where = {
-      userId: auth.user.userId,
-    };
+    const where = { userId: auth.user.userId };
 
     // Fetch paginated reservations and the total count in one transaction
     const [reservations, total] = await prisma.$transaction([
@@ -313,7 +295,6 @@ export async function GET(request: Request) {
     );
   } catch (error) {
     console.error("Get reservations failed:", error);
-
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
