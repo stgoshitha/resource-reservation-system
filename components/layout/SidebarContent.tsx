@@ -1,133 +1,35 @@
-
 "use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { CalendarRange, ChevronLeft, ChevronRight, LogOut, X } from "lucide-react";
+import type { SidebarItem, SidebarProps } from "./Sidebar.types";
 
-import {
-  CalendarRange,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  X,
-} from "lucide-react";
+type SidebarContentProps = Pick<SidebarProps, "role" | "userEmail" | "onMobileOpenChange" | "onCollapsedChange"> & {
+  userName: string;
+  collapsed: boolean;
+  isCollapsed: boolean;
+  isMobile: boolean;
+  items: SidebarItem[];
+  pathname: string;
+  busy: boolean;
+  onLogout?: SidebarProps["onLogout"];
+  handleLogout: () => Promise<void>;
+};
 
-import { getSidebarItems } from "./sidebarItems";
-
-import type {
-  SidebarItem,
-  SidebarProps,
-} from "./Sidebar.types";
-
-export default function Sidebar({
-  role,
-  userName = "ReserveHub User",
-  userEmail,
-  collapsed = false,
-  onCollapsedChange,
-  mobileOpen = false,
-  onMobileOpenChange,
-  onLogout,
-  loggingOut = false,
-  className = "",
-}: SidebarProps) {
-  const pathname = usePathname();
-
-  const [internalLoggingOut, setInternalLoggingOut] =
-    useState(false);
-
-  const [previousPathname, setPreviousPathname] =
-    useState(pathname);
-
-  const items = getSidebarItems(role);
-
-  const busy = loggingOut || internalLoggingOut;
-
-  // Close mobile sidebar only when the route changes.
-  useEffect(() => {
-    if (pathname !== previousPathname) {
-      setPreviousPathname(pathname);
-      onMobileOpenChange?.(false);
-    }
-  }, [
-    pathname,
-    previousPathname,
-    onMobileOpenChange,
-  ]);
-
-  // Close mobile sidebar with Escape.
-  useEffect(() => {
-    if (!mobileOpen) return;
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onMobileOpenChange?.(false);
-      }
-    }
-
-    document.addEventListener(
-      "keydown",
-      handleEscape
-    );
-
-    return () => {
-      document.removeEventListener(
-        "keydown",
-        handleEscape
-      );
-    };
-  }, [mobileOpen, onMobileOpenChange]);
-
-  // Prevent background scrolling while mobile sidebar is open.
-  useEffect(() => {
-    if (!mobileOpen) return;
-
-    const previousOverflow =
-      document.body.style.overflow;
-
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow =
-        previousOverflow;
-    };
-  }, [mobileOpen]);
-
+export default function SidebarContent({
+  role, userName, userEmail, collapsed, isCollapsed, isMobile, items,
+  pathname, busy, onLogout, onMobileOpenChange, onCollapsedChange, handleLogout,
+}: SidebarContentProps) {
   function isActive(item: SidebarItem) {
-    if (item.exact) {
-      return pathname === item.href;
-    }
-
-    return (
-      pathname === item.href ||
-      pathname.startsWith(`${item.href}/`)
-    );
+    if (item.exact) return pathname === item.href;
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
-
-  async function handleLogout() {
-    if (!onLogout || busy) return;
-
-    setInternalLoggingOut(true);
-
-    try {
-      await onLogout();
-    } finally {
-      setInternalLoggingOut(false);
-    }
-  }
-
-  function renderSidebarContent(
-    isCollapsed: boolean,
-    isMobile: boolean
-  ) {
     return (
       <div className="flex h-full min-h-0 flex-col">
         {/* Branding */}
         <div
           className={[
-            "flex h-[72px] shrink-0 items-center",
-            "border-b border-slate-200 px-4",
+            "flex h-[80px] shrink-0 items-center",
+            "border-b border-slate-200 px-5",
             isCollapsed
               ? "justify-center"
               : "justify-between",
@@ -139,7 +41,7 @@ export default function Sidebar({
                 ? "/admin"
                 : "/dashboard"
             }
-            className="flex min-w-0 items-center gap-3"
+            className="flex min-w-0 items-center gap-4"
             aria-label="ReserveHub home"
             onClick={() => {
               if (isMobile) {
@@ -150,20 +52,17 @@ export default function Sidebar({
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
               <CalendarRange size={21} />
             </span>
-
             {!isCollapsed && (
               <div className="min-w-0">
                 <p className="truncate text-lg font-bold tracking-tight text-slate-900">
                   ReserveHub
                 </p>
-
                 <p className="text-xs text-slate-500">
                   Reservation System
                 </p>
               </div>
             )}
           </Link>
-
           {isMobile && (
             <button
               type="button"
@@ -177,7 +76,6 @@ export default function Sidebar({
             </button>
           )}
         </div>
-
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto px-3 py-5">
           {!isCollapsed && (
@@ -187,7 +85,6 @@ export default function Sidebar({
                 : "Workspace"}
             </p>
           )}
-
           <nav
             aria-label={
               role === "ADMIN"
@@ -199,7 +96,6 @@ export default function Sidebar({
             {items.map((item) => {
               const Icon = item.icon;
               const active = isActive(item);
-
               return (
                 <Link
                   key={item.href}
@@ -242,7 +138,6 @@ export default function Sidebar({
                     className="shrink-0"
                     aria-hidden="true"
                   />
-
                   {!isCollapsed && (
                     <span className="truncate">
                       {item.label}
@@ -253,7 +148,6 @@ export default function Sidebar({
             })}
           </nav>
         </div>
-
         {/* User profile and logout */}
         <div className="shrink-0 border-t border-slate-200 p-3">
           <div
@@ -269,13 +163,11 @@ export default function Sidebar({
               {userName.trim().charAt(0).toUpperCase() ||
                 "U"}
             </div>
-
             {!isCollapsed && (
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-slate-900">
                   {userName}
                 </p>
-
                 <p className="truncate text-xs text-slate-500">
                   {userEmail ||
                     (role === "ADMIN"
@@ -285,7 +177,6 @@ export default function Sidebar({
               </div>
             )}
           </div>
-
           {onLogout && (
             <button
               type="button"
@@ -310,7 +201,6 @@ export default function Sidebar({
                 size={19}
                 aria-hidden="true"
               />
-
               {!isCollapsed && (
                 <span>
                   {busy
@@ -320,7 +210,6 @@ export default function Sidebar({
               )}
             </button>
           )}
-
           {/* Desktop collapse button */}
           {!isMobile && onCollapsedChange && (
             <button
@@ -348,52 +237,4 @@ export default function Sidebar({
         </div>
       </div>
     );
-  }
-
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <aside
-        className={[
-          "hidden h-dvh shrink-0",
-          "border-r border-slate-200 bg-white",
-          "transition-[width] duration-200",
-          "lg:flex lg:flex-col",
-          collapsed ? "w-20" : "w-64",
-          className,
-        ].join(" ")}
-      >
-        {renderSidebarContent(collapsed, false)}
-      </aside>
-
-      {/* Mobile Sidebar */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[100] lg:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-slate-950/40"
-            onClick={() =>
-              onMobileOpenChange?.(false)
-            }
-            aria-hidden="true"
-          />
-
-          {/* Drawer */}
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label="Mobile navigation"
-            className={[
-              "absolute inset-y-0 left-0",
-              "w-[min(85vw,320px)]",
-              "bg-white shadow-xl",
-              "animate-[sidebar-slide-in_250ms_ease-out]",
-            ].join(" ")}
-          >
-            {renderSidebarContent(false, true)}
-          </aside>
-        </div>
-      )}
-    </>
-  );
 }
