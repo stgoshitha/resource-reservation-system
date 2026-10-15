@@ -1,28 +1,43 @@
-import { CalendarDays } from "lucide-react";
+import Image from "next/image";
 
 export default function Loading() {
   return (
-    <div
-      className="flex min-h-dvh flex-col items-center justify-center bg-slate-50 px-6"
+    <main
       role="status"
       aria-live="polite"
+      aria-label="Loading ReserveHub"
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-slate-50 px-6 py-12"
     >
-      <div className="flex flex-col items-center">
-        <div className="relative flex h-24 w-24 items-center justify-center">
-          <div className="absolute inset-0 rounded-[28px] bg-indigo-100/70 blur-xl" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-indigo-100/50 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -right-32 h-96 w-96 rounded-full bg-blue-100/40 blur-3xl"
+      />
 
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-[24px] bg-indigo-600 shadow-xl shadow-indigo-600/20">
-            <CalendarDays
-              size={38}
-              strokeWidth={1.8}
-              className="text-white"
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center text-center">
+        <div className="relative flex h-32 w-32 items-center justify-center">
+          <div className="absolute inset-4 rounded-full bg-indigo-200/50 blur-2xl" />
+
+          <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-indigo-600 border-r-indigo-300 motion-reduce:animate-none" />
+
+          <div className="absolute inset-3 rounded-full border border-indigo-100" />
+
+          <div className="relative animate-[bounce_3s_ease-in-out_infinite] overflow-hidden rounded-2xl bg-white p-1 shadow-xl shadow-indigo-600/15 motion-reduce:animate-none">
+            <Image
+              src="/ReserveHub-Logo.png"
+              alt="ReserveHub Logo"
+              width={72}
+              height={72}
+              className="h-[72px] w-[72px] rounded-xl object-cover"
+              priority
             />
           </div>
-
-          <div className="absolute -inset-3 animate-spin rounded-full border-2 border-transparent border-t-indigo-500 border-r-indigo-200" />
         </div>
 
-        <h1 className="mt-9 text-3xl font-bold tracking-tight text-slate-900">
+        <h1 className="mt-7 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
           Reserve<span className="text-indigo-600">Hub</span>
         </h1>
 
@@ -30,20 +45,36 @@ export default function Loading() {
           Resource Reservation System
         </p>
 
-        <div className="mt-10 flex items-center gap-2">
-          <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-600 [animation-delay:-0.3s]" />
-          <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-500 [animation-delay:-0.15s]" />
-          <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-400" />
+        <div
+          aria-hidden="true"
+          className="mt-8 flex w-full items-center gap-4"
+        >
+          <div className="h-px flex-1 bg-slate-200" />
+          <div className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+          <div className="h-px flex-1 bg-slate-200" />
         </div>
 
-        <p className="mt-4 text-xs font-medium tracking-wide text-slate-400">
+        <div
+          aria-hidden="true"
+          className="mt-8 flex items-center justify-center gap-2"
+        >
+          <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-indigo-600 motion-reduce:animate-none [animation-delay:-0.3s]" />
+          <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-indigo-500 motion-reduce:animate-none [animation-delay:-0.15s]" />
+          <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-indigo-400 motion-reduce:animate-none" />
+        </div>
+
+        <p className="mt-5 text-sm font-medium text-slate-500">
           Preparing your workspace...
+        </p>
+
+        <p className="mt-1 text-xs text-slate-400">
+          Please wait a moment
         </p>
       </div>
 
-      <p className="absolute bottom-8 text-center text-xs text-slate-400">
+      <p className="absolute bottom-6 left-0 right-0 px-4 text-center text-xs text-slate-400 sm:bottom-8">
         Simple bookings. Better resource management.
       </p>
-    </div>
+    </main>
   );
 }
