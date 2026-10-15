@@ -3,8 +3,13 @@ import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
 
 export const metadata: Metadata = {
-  title: "ReserveHub — Resource Reservation Management System",
+  title: "ReserveHub",
   description: "Streamline your resource scheduling.",
+  icons: {
+    icon: "/ReserveHub-Logo.jpg",
+    shortcut: "/ReserveHub-Logo.png",
+    apple: "/ReserveHub-Logo.png",
+  },
 };
 
 export default function RootLayout({

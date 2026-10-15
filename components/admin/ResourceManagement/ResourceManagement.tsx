@@ -3,74 +3,16 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
 import Button from "@/components/ui/button/Button";
-import { Modal } from "@/components/ui/modal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { FormField, FormInput, FormNumber, FormSearch, FormSelect, FormTextarea } from "@/components/ui/form";
+import { FormSearch, FormSelect } from "@/components/ui/form";
 import GenericTable from "@/components/ui/table/GenericTable";
 import type { GenericTableColumn } from "@/components/ui/table/GenericTable.types";
 import Pagination from "@/components/ui/pagination/Pagination";
 import PageHeader from "@/components/ui/page-header/PageHeader";
-
-type ResourceStatus = "AVAILABLE" | "MAINTENANCE" | "INACTIVE";
-type Category = { categoryId: string; categoryCode: string; categoryName: string };
-type Resource = {
-  resourceId: string;
-  resourceCode: string;
-  resourceName: string;
-  categoryId: string;
-  category: Category;
-  description: string | null;
-  location: string | null;
-  capacity: number | null;
-  resourceStatus: ResourceStatus;
-  createdAt: string;
-};
-type ResourceForm = {
-  categoryId: string;
-  resourceName: string;
-  description: string;
-  location: string;
-  capacity: string;
-  resourceStatus: ResourceStatus;
-};
-type ListResponse<T> = {
-  message?: string;
-  data?: T[];
-  pagination?: { page: number; limit: number; total: number; totalPages: number };
-};
-const emptyForm: ResourceForm = {
-  categoryId: "",
-  resourceName: "",
-  description: "",
-  location: "",
-  capacity: "",
-  resourceStatus: "AVAILABLE",
-};
-const statusLabels: Record<ResourceStatus, string> = {
-  AVAILABLE: "Available",
-  MAINTENANCE: "Maintenance",
-  INACTIVE: "Inactive",
-};
-const statusStyles: Record<ResourceStatus, string> = {
-  AVAILABLE: "bg-emerald-50 text-emerald-700",
-  MAINTENANCE: "bg-amber-50 text-amber-700",
-  INACTIVE: "bg-slate-100 text-slate-600",
-};
-
-async function readResponse(response: Response): Promise<Record<string, unknown>> {
-  const body: unknown = await response.json().catch(() => ({}));
-  return body && typeof body === "object" ? body as Record<string, unknown> : {};
-}
-function getErrorMessage(result: Record<string, unknown>, fallback: string): string {
-  const errors = result.errors;
-  if (errors && typeof errors === "object") {
-    const first = Object.values(errors).flat().find((value) => typeof value === "string");
-    if (typeof first === "string") return first;
-  }
-  return typeof result.message === "string" ? result.message : fallback;
-}
+import ResourceFormModal from "./ResourceFormModal";
+import type { Category, Resource, ResourceForm, ListResponse } from "./resource.types";
+import { emptyForm, statusLabels, statusStyles, readResponse, getErrorMessage } from "./resource.utils";
 
 export default function ResourceManagement() {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -90,7 +32,6 @@ export default function ResourceManagement() {
   const [editing, setEditing] = useState<Resource | null>(null);
   const [form, setForm] = useState<ResourceForm>(emptyForm);
   const [deleting, setDeleting] = useState<Resource | null>(null);
-
   const fetchResources = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
     try {
@@ -115,13 +56,11 @@ export default function ResourceManagement() {
       if (!signal.aborted) setLoading(false);
     }
   }, [page, pageSize, search, categoryFilter, statusFilter]);
-
   useEffect(() => {
     const controller = new AbortController();
     void fetchResources(controller.signal);
     return () => controller.abort();
   }, [fetchResources, refreshKey]);
-
   useEffect(() => {
     const controller = new AbortController();
     async function loadCategories() {
@@ -151,7 +90,6 @@ export default function ResourceManagement() {
     void loadCategories();
     return () => controller.abort();
   }, []);
-
   function refresh() { setRefreshKey((current) => current + 1); }
   function openCreate() {
     setEditing(null);
@@ -173,7 +111,6 @@ export default function ResourceManagement() {
   function updateForm<K extends keyof ResourceForm>(field: K, value: ResourceForm[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
-
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
@@ -214,7 +151,6 @@ export default function ResourceManagement() {
       setSaving(false);
     }
   }
-
   async function handleDelete() {
     if (!deleting) return;
     try {
@@ -235,7 +171,13 @@ export default function ResourceManagement() {
     setPage(1);
     setSearch(searchInput.trim());
   }
-
+  function handleClearFilters() {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+    setCategoryFilter("");
+    setStatusFilter("");
+  }
   const columns = useMemo<GenericTableColumn<Resource>[]>(() => [
     { key: "code", header: "Code", accessor: "resourceCode", render: (row) => (
       <span className="font-medium text-indigo-600">{row.resourceCode}</span>
@@ -249,35 +191,33 @@ export default function ResourceManagement() {
         {statusLabels[row.resourceStatus]}
       </span>
     ) },
-    { key: "actions", header: "Actions", render: (row) => (
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={() => openEdit(row)} aria-label={`Edit ${row.resourceName}`} className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50"><Pencil size={17} /></button>
-        <button type="button" onClick={() => setDeleting(row)} aria-label={`Delete ${row.resourceName}`} className="rounded-lg p-2 text-red-600 hover:bg-red-50"><Trash2 size={17} /></button>
+    { key: "actions", header: "Actions", align: "right", render: (row) => (
+      <div className="flex items-center justify-end gap-2">
+        <button type="button" onClick={() => openEdit(row)} aria-label={`Edit ${row.resourceName}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-indigo-600 transition hover:bg-indigo-50"><Pencil size={17} /></button>
+        <button type="button" onClick={() => setDeleting(row)} aria-label={`Delete ${row.resourceName}`} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-50"><Trash2 size={17} /></button>
       </div>
     ) },
   ], []);
-
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-7">
       <PageHeader
         title="Resource Management"
         description="Manage resources, their categories, availability, and capacity."
         breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Resources" }]}
         actions={<Button onClick={openCreate} disabled={categoriesLoading || categories.length === 0}><Plus size={18} />Add Resource</Button>}
       />
-
       <div className="space-y-4">
-        <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3">
-          <div className="min-w-52 flex-1">
+        <form onSubmit={handleSearch} className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="min-w-0 flex-1">
             <FormSearch aria-label="Search resources" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} maxLength={100} placeholder="Search resource name or code..." />
           </div>
-          <div className="w-full sm:w-52">
+          <div className="w-full lg:w-64">
             <FormSelect aria-label="Filter by category" value={categoryFilter} onChange={(event) => { setCategoryFilter(event.target.value); setPage(1); }} placeholder="All Categories">
               <option value="">All Categories</option>
               {categories.map((category) => <option key={category.categoryId} value={category.categoryId}>{category.categoryName}</option>)}
             </FormSelect>
           </div>
-          <div className="w-full sm:w-44">
+          <div className="w-full lg:w-56">
             <FormSelect aria-label="Filter by status" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }} placeholder="All Statuses">
               <option value="">All Statuses</option>
               <option value="AVAILABLE">Available</option>
@@ -285,9 +225,16 @@ export default function ResourceManagement() {
               <option value="INACTIVE">Inactive</option>
             </FormSelect>
           </div>
-          <Button type="submit" size="sm">Search</Button>
+          <button type="submit" className="h-11 rounded-xl bg-indigo-600 px-5 text-sm font-medium text-white transition hover:bg-indigo-700">Search</button>
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            disabled={!searchInput && !search && !categoryFilter && !statusFilter}
+            className="h-11 rounded-xl border border-slate-200 bg-white px-5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Clear Filters
+          </button>
         </form>
-
         <GenericTable<Resource>
           data={resources}
           columns={columns}
@@ -297,58 +244,29 @@ export default function ResourceManagement() {
           pagination={false}
           emptyMessage="No resources found."
         />
-        <Pagination
-          currentPage={page}
-          totalItems={total}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-          disabled={loading}
-        />
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 pb-4 shadow-sm">
+          <Pagination
+            currentPage={page}
+            totalItems={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            showPageSize={false}
+            showInfo
+            disabled={loading}
+          />
+        </div>
       </div>
-
-      <Modal
-        open={formOpen}
-        onOpenChange={(open) => { if (!saving) setFormOpen(open); }}
-        title={editing ? "Edit Resource" : "Add Resource"}
-        description={editing ? `Editing ${editing.resourceCode}` : "Resource code will be generated automatically."}
-        size="md"
-        position="right"
-        closeOnOverlayClick={!saving}
-        footer={<>
-          <Button variant="outline" disabled={saving} onClick={() => setFormOpen(false)}>Cancel</Button>
-          <Button type="submit" form="resource-form" loading={saving}>{editing ? "Save Changes" : "Create Resource"}</Button>
-        </>}
-      >
-        <form id="resource-form" onSubmit={handleSave} className="space-y-5">
-          <FormField id="resource-category" label="Category" required>
-            <FormSelect id="resource-category" required disabled={saving || categoriesLoading} value={form.categoryId} onChange={(event) => updateForm("categoryId", event.target.value)} placeholder="Select category">
-              <option value="">Select category</option>
-              {categories.map((category) => <option key={category.categoryId} value={category.categoryId}>{category.categoryName}</option>)}
-            </FormSelect>
-          </FormField>
-          <FormField id="resource-name" label="Resource Name" required>
-            <FormInput id="resource-name" required disabled={saving} value={form.resourceName} onChange={(event) => updateForm("resourceName", event.target.value)} minLength={2} maxLength={150} placeholder="e.g. Meeting Room A" />
-          </FormField>
-          <FormField id="resource-location" label="Location">
-            <FormInput id="resource-location" disabled={saving} value={form.location} onChange={(event) => updateForm("location", event.target.value)} maxLength={200} placeholder="e.g. Building A, Floor 2" />
-          </FormField>
-          <FormField id="resource-capacity" label="Capacity">
-            <FormNumber id="resource-capacity" min={1} step={1} disabled={saving} value={form.capacity} onChange={(event) => updateForm("capacity", event.target.value)} placeholder="e.g. 10" />
-          </FormField>
-          <FormField id="resource-status" label="Resource Status" required>
-            <FormSelect id="resource-status" required disabled={saving} value={form.resourceStatus} onChange={(event) => updateForm("resourceStatus", event.target.value as ResourceStatus)}>
-              <option value="AVAILABLE">Available</option>
-              <option value="MAINTENANCE">Maintenance</option>
-              <option value="INACTIVE">Inactive</option>
-            </FormSelect>
-          </FormField>
-          <FormField id="resource-description" label="Description">
-            <FormTextarea id="resource-description" rows={3} disabled={saving} value={form.description} onChange={(event) => updateForm("description", event.target.value)} maxLength={1000} placeholder="Enter resource description" />
-          </FormField>
-        </form>
-      </Modal>
-
+      <ResourceFormModal
+        formOpen={formOpen}
+        setFormOpen={setFormOpen}
+        editing={editing}
+        saving={saving}
+        categoriesLoading={categoriesLoading}
+        categories={categories}
+        form={form}
+        updateForm={updateForm}
+        handleSave={handleSave}
+      />
       <ConfirmDialog
         open={Boolean(deleting)}
         onOpenChange={(open) => { if (!open) setDeleting(null); }}

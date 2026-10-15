@@ -1,4 +1,4 @@
-import ResourceManagement from "@/components/admin/resources/ResourceManagement";
+import ResourceManagement from "@/components/admin/ResourceManagement/ResourceManagement";
 
 export default function AdminResourcesPage() {
   return <ResourceManagement />;

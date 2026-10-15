@@ -1,20 +1,16 @@
-
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  ArrowRight,
-  CalendarCheck2,
-  LoaderCircle,
-  Mail,
-} from "lucide-react";
+import { ArrowRight, LoaderCircle, Mail } from "lucide-react";
 import {
   FormField,
   FormInput,
   FormPassword,
 } from "@/components/ui/form";
+import { toast } from "@/components/ui/toast";
 
 type AuthUser = {
   userId: string;
@@ -36,13 +32,11 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loading) return;
 
-    setError("");
     setLoading(true);
 
     try {
@@ -62,7 +56,9 @@ export default function LoginForm() {
       const loginResult: ApiResponse = await loginResponse.json();
 
       if (!loginResponse.ok) {
-        setError(loginResult.message || "Login failed. Please try again.");
+        toast.error(
+          loginResult.message || "Login failed. Please try again."
+        );
         return;
       }
 
@@ -76,7 +72,7 @@ export default function LoginForm() {
       const meResult: ApiResponse = await meResponse.json();
 
       if (!meResponse.ok || !meResult.user) {
-        setError("Unable to verify your session. Please try again.");
+        toast.error("Unable to verify your session. Please try again.");
         return;
       }
 
@@ -88,7 +84,7 @@ export default function LoginForm() {
       } else if (user.userRole === "USER") {
         router.replace("/dashboard");
       } else {
-        setError("Your account has an unsupported role.");
+        toast.error("Your account has an unsupported role.");
         return;
       }
 
@@ -96,14 +92,14 @@ export default function LoginForm() {
       setPassword("");
       router.refresh();
     } catch {
-      setError("Unable to connect to the server. Please try again.");
+      toast.error("Unable to connect to the server. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 sm:px-6">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-slate-50 px-4 py-8 sm:px-6">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-indigo-100/50 blur-3xl"
@@ -114,20 +110,29 @@ export default function LoginForm() {
       />
 
       <div className="auth-float-in relative z-10 w-full max-w-[440px]">
-        <div className="mb-8 flex items-center justify-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20">
-            <CalendarCheck2 size={26} strokeWidth={1.9} />
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-900">
-            Reserve<span className="text-indigo-600">Hub</span>
-          </span>
-        </div>
-
         <section className="rounded-2xl border border-slate-200 bg-white px-6 py-8 shadow-xl shadow-slate-900/[0.035] sm:px-9 sm:py-10">
-          <div className="mb-8 text-center">
-            <h1 className="text-[27px] font-bold tracking-tight text-slate-900">
-              Welcome back
-            </h1>
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="mb-3 overflow-hidden rounded-2xl shadow-lg shadow-indigo-600/15">
+              <Image
+                src="/ReserveHub-Logo.png"
+                alt="ReserveHub Logo"
+                width={72}
+                height={72}
+                className="h-[72px] w-[72px] object-cover"
+                priority
+              />
+            </div>
+
+            <span className="text-2xl font-bold tracking-tight text-slate-900">
+              Reserve<span className="text-indigo-600">Hub</span>
+            </span>
+
+            <div className="my-4 flex w-full items-center gap-4">
+              <div className="h-px flex-1 bg-slate-200" />
+              <div className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+
             <p className="mt-2 text-sm leading-relaxed text-slate-500">
               Sign in to manage your resource reservations.
             </p>
@@ -182,15 +187,6 @@ export default function LoginForm() {
               />
             </FormField>
 
-            {error && (
-              <div
-                role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-relaxed text-red-700"
-              >
-                {error}
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -229,7 +225,7 @@ export default function LoginForm() {
           </p>
         </section>
 
-        <p className="mt-8 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-slate-400">
           © {new Date().getFullYear()} ReserveHub. All rights reserved.
         </p>
       </div>

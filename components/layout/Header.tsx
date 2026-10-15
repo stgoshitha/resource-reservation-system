@@ -4,6 +4,7 @@ import { CalendarCheck2, Menu } from "lucide-react";
 import type { HeaderProps } from "./Header.types";
 import HeaderNavigation from "./header-components/HeaderNavigation";
 import ProfileDropdown from "./header-components/ProfileDropdown";
+import Image from "next/image";
 
 export default function Header({
   title = "Dashboard",
@@ -17,7 +18,7 @@ export default function Header({
   navigation,
   className = "",
 }: HeaderProps) {
-  const isAdmin = role === "ADMIN" ;
+  const isAdmin = role === "ADMIN";
 
   return (
     <header
@@ -65,10 +66,25 @@ export default function Header({
 
           {!isAdmin && (
             <div className="flex min-w-0 items-center gap-3">
-              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white shadow-lg shadow-indigo-500/20 sm:h-11 sm:w-11 sm:rounded-2xl">
-                <CalendarCheck2 size={22} strokeWidth={2} />
-                <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-[3px] border-white bg-emerald-400" />
+
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-indigo-100 bg-white p-1 shadow-md shadow-indigo-500/10 transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/20 sm:h-12 sm:w-12">
+                <div className="h-full w-full overflow-hidden rounded-xl">
+                  <Image
+                    src="/ReserveHub-Logo.png"
+                    alt="ReserveHub Logo"
+                    width={48}
+                    height={48}
+                    className="h-full w-full object-cover"
+                    priority
+                  />
+                </div>
+
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-[3px] border-white bg-emerald-400 shadow-sm"
+                />
               </div>
+
 
               <div className="min-w-0">
                 <h1 className="truncate text-base font-bold tracking-tight text-slate-900 sm:text-lg">

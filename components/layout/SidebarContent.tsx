@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarRange, ChevronLeft, ChevronRight, LogOut, X } from "lucide-react";
+import {ChevronLeft, ChevronRight, LogOut, X } from "lucide-react";
 import type { SidebarItem, SidebarProps } from "./Sidebar.types";
+import Image from "next/image";
 
 type SidebarContentProps = Pick<SidebarProps, "role" | "userEmail" | "onMobileOpenChange" | "onCollapsedChange"> & {
   userName: string;
@@ -42,7 +43,7 @@ export default function SidebarContent({
                 ? "/admin"
                 : "/dashboard"
             }
-            className="flex min-w-0 items-center gap-4"
+            className="flex min-w-0 items-center gap-2"
             aria-label="ReserveHub home"
             onClick={() => {
               if (isMobile) {
@@ -50,9 +51,14 @@ export default function SidebarContent({
               }
             }}
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white">
-              <CalendarRange size={21} />
-            </span>
+            <Image
+                src="/ReserveHub-Logo.png"
+                alt="ReserveHub Logo"
+                width={50}
+                height={50}
+                className="h-[50px] w-[50px] object-cover"
+                priority
+              />
             {!isCollapsed && (
               <div className="min-w-0">
                 <p className="truncate text-lg font-bold tracking-tight text-slate-900">
