@@ -9,6 +9,7 @@ import ResourceSelectionStep from "./ResourceSelectionStep";
 
 export default function ResourceBooking() {
   const booking = useResourceBooking();
+  if (booking.restoring) return <div role="status" className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Restoring your reservation session...</div>;
   const { success, hold, step, timerColor, holdSecondsLeft, countdown, holdProgress, progressColor, steps, saving, goBack, selected, scheduleRefresh, handleGridSelection, title, setTitle, resetAvailability, notes, setNotes, startTime, endTime, formatTime, submit, validSelection, validDetails, nextStep } = booking;
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -142,8 +143,8 @@ export default function ResourceBooking() {
         </div>
       </div>
       {step === 1 && <ResourceSelectionStep booking={booking} />}
-      {selected && (
-        <section hidden={step !== 2} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      {selected && step === 2 && (
+        <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div>
             <p className="text-lg font-semibold uppercase tracking-wider text-indigo-600">Step 2 · Select Date & Time</p>
             <p className="mt-1 text-sm text-slate-500">{selected.resourceName} · {selected.category.categoryName}</p>

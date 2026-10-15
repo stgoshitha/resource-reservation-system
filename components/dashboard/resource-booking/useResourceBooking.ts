@@ -1,4 +1,5 @@
 "use client";
+
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { isBookingTimeAligned } from "@/src/lib/config/booking-timezone";
@@ -17,6 +18,14 @@ export type Resource = {
 };
 export type ReservationHold = { holdId: string; expiresAt: string; resourceId: string; startTime: string; endTime: string };
 const PAGE_SIZE = 6;
+const DRAFT_KEY = "reservehub:active-booking:v1";
+type BookingDraft = {
+  hold: ReservationHold;
+  title: string;
+  notes: string;
+  step: 3 | 4;
+};
+
 async function readResponse(response: Response): Promise<Record<string, unknown>> {
   try {
     return (await response.json()) as Record<string, unknown>;
@@ -28,6 +37,7 @@ function messageOf(data: Record<string, unknown>, fallback: string) {
   return typeof data.message === "string" ? data.message : fallback;
 }
 export default function useResourceBooking() {
+  const [restoring, setRestoring] = useState(true);
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryId, setCategoryId] = useState("all");
@@ -52,10 +62,80 @@ export default function useResourceBooking() {
   const warnedHoldRef = useRef({ holdId: "", twoMinutes: false, thirtySeconds: false });
 
   function setActiveHold(value: ReservationHold | null) {
+    // Keep the current hold available after a full browser refresh.
+    // Server verification is always required before restoring it.
     holdRef.current = value;
     setHold(value);
+    if (!value) {
+      try { window.sessionStorage.removeItem(DRAFT_KEY); } catch { /* Storage disabled */ }
+    }
     setHoldSecondsLeft(value ? Math.max(0, Math.ceil((new Date(value.expiresAt).getTime() - Date.now()) / 1000)) : 0);
   }
+
+  // Recover only a hold that still exists, belongs to this user, and has not expired.
+  useEffect(() => {
+    let cancelled = false;
+    async function recover() {
+      try {
+        const raw = window.sessionStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        const draft = JSON.parse(raw) as BookingDraft;
+        if (!draft?.hold?.holdId || !draft.hold.resourceId ||
+            !draft.hold.startTime || !draft.hold.endTime ||
+            new Date(draft.hold.expiresAt).getTime() <= Date.now()) {
+          window.sessionStorage.removeItem(DRAFT_KEY);
+          return;
+        }
+        const response = await fetch(
+          `/api/reservation-holds/${encodeURIComponent(draft.hold.holdId)}`,
+          { cache: "no-store", credentials: "same-origin" },
+        );
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 410) {
+            window.sessionStorage.removeItem(DRAFT_KEY);
+          }
+          return;
+        }
+        const data = await readResponse(response);
+        const verified = data.hold as ReservationHold | undefined;
+        if (cancelled || !verified ||
+            verified.resourceId !== draft.hold.resourceId ||
+            verified.startTime !== draft.hold.startTime ||
+            verified.endTime !== draft.hold.endTime ||
+            new Date(verified.expiresAt).getTime() <= Date.now()) {
+          window.sessionStorage.removeItem(DRAFT_KEY);
+          return;
+        }
+        holdExpiredRef.current = false;
+        setResourceId(verified.resourceId);
+        setStartTime(verified.startTime);
+        setEndTime(verified.endTime);
+        setTitle(typeof draft.title === "string" ? draft.title : "");
+        setNotes(typeof draft.notes === "string" ? draft.notes : "");
+        setActiveHold(verified);
+        const validDetails = typeof draft.title === "string" &&
+          draft.title.trim().length >= 2 && draft.title.trim().length <= 150 &&
+          typeof draft.notes === "string" && draft.notes.length <= 1000;
+        setStep(draft.step === 4 && validDetails ? 4 : 3);
+        toast.success("Your active reservation hold was restored.");
+      } catch {
+        // A transient network error must not delete a potentially valid server hold.
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    }
+    void recover();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (restoring || !hold) return;
+    try {
+      window.sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+        hold, title, notes, step: step === 4 ? 4 : 3,
+      } satisfies BookingDraft));
+    } catch { /* Storage disabled */ }
+  }, [restoring, hold, title, notes, step]);
 
   // Release the server-side hold before allowing a different time selection.
 
@@ -110,8 +190,7 @@ export default function useResourceBooking() {
       if (seconds === 0 && !holdExpiredRef.current && !confirmingRef.current) {
         holdExpiredRef.current = true;
         holdRequestRef.current += 1;
-        holdRef.current = null;
-        setHold(null);
+        setActiveHold(null);
         setStartTime("");
         setEndTime("");
         setScheduleRefresh((value) => value + 1);
@@ -367,6 +446,7 @@ export default function useResourceBooking() {
   return {
     resources,
     loading,
+    restoring,
     categoryId,
     setCategoryId,
     search,
