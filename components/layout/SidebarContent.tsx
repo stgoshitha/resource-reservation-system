@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { CalendarRange, ChevronLeft, ChevronRight, LogOut, X } from "lucide-react";
 import type { SidebarItem, SidebarProps } from "./Sidebar.types";

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -12,7 +13,8 @@ import {
 import { prisma } from "@/src/lib/prisma";
 import StatCard from "@/components/ui/stat-card/StatCard";
 import RecentReservationsTable from "@/components/admin/dashboard/RecentReservationsTable";
-export default async function AdminDashboardPage() {
+async function DashboardContent() {
+  // Load dashboard statistics and the five most recent reservations.
   const [
     totalResources,
     totalCategories,
@@ -60,6 +62,7 @@ export default async function AdminDashboardPage() {
       },
     }),
   ]);
+  // Prepare reservation dates and related names for the table.
   const formattedReservations = recentReservations.map(
     (reservation) => ({
       reservationId: reservation.reservationId,
@@ -70,10 +73,26 @@ export default async function AdminDashboardPage() {
       userName: reservation.user.fullName,
     })
   );
+  const availabilityPercent = totalResources > 0
+    ? Math.round((availableResources / totalResources) * 100)
+    : 0;
   return (
-    <div className="min-w-0 w-full space-y-5 pb-8 sm:space-y-6 lg:space-y-7 2xl:space-y-8">
+    <>
+      <style>{`
+        @keyframes dashboard-reveal {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          .dashboard-reveal { animation: dashboard-reveal 450ms ease-out both; }
+          .dashboard-delay-1 { animation-delay: 70ms; }
+          .dashboard-delay-2 { animation-delay: 140ms; }
+          .dashboard-delay-3 { animation-delay: 210ms; }
+        }
+      `}</style>
+    <div className="w-full min-w-0 space-y-5 pb-8 sm:space-y-6 lg:space-y-7 2xl:space-y-8">
       {/* Page heading */}
-      <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="dashboard-reveal flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0 space-y-1">
           <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl lg:text-3xl 2xl:text-4xl">
             Operations Overview
@@ -85,7 +104,7 @@ export default async function AdminDashboardPage() {
         </div>
         <Link
           href="/admin/resources"
-          className="inline-flex min-h-10 w-full items-center justify-center gap-2 self-start whitespace-nowrap rounded-xl sm:w-auto md:shrink-0 bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          className="inline-flex min-h-10 w-full items-center justify-center gap-2 self-start whitespace-nowrap rounded-xl sm:w-auto md:shrink-0 bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md active:translate-y-0 motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         >
           <Plus size={17} />
           Manage Resources
@@ -94,7 +113,7 @@ export default async function AdminDashboardPage() {
       {/* Statistics */}
       <section
         aria-label="System statistics"
-        className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:gap-5"
+        className="dashboard-reveal dashboard-delay-1 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:gap-5"
       >
         <StatCard
           title="Total Resources"
@@ -140,8 +159,8 @@ export default async function AdminDashboardPage() {
         />
       </section>
       {/* Operational overview */}
-      <section className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-3 2xl:gap-5">
-        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6 xl:col-span-2 2xl:p-7">
+      <section className="dashboard-reveal dashboard-delay-2 grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-3 2xl:gap-5">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:border-indigo-100 hover:shadow-md sm:p-5 lg:p-6 xl:col-span-2 2xl:p-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -153,14 +172,14 @@ export default async function AdminDashboardPage() {
             </div>
             <Link
               href="/admin/reservations"
-              className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 transition-colors duration-200 hover:text-indigo-800"
             >
               View reservations
               <ArrowRight size={16} />
             </Link>
           </div>
           <div className="mt-5 grid min-w-0 gap-3 sm:grid-cols-2 sm:gap-4 2xl:mt-6">
-            <div className="min-w-0 rounded-xl bg-indigo-50 p-4 sm:p-5">
+            <div className="min-w-0 rounded-xl bg-indigo-50 p-4 transition-colors duration-200 hover:bg-indigo-100/70 sm:p-5">
               <div className="flex items-center gap-2 text-sm font-medium text-indigo-700">
                 <CalendarDays size={18} />
                 All reservations
@@ -169,7 +188,7 @@ export default async function AdminDashboardPage() {
                 {totalReservations}
               </p>
             </div>
-            <div className="min-w-0 rounded-xl bg-emerald-50 p-4 sm:p-5">
+            <div className="min-w-0 rounded-xl bg-emerald-50 p-4 transition-colors duration-200 hover:bg-emerald-100/70 sm:p-5">
               <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
                 <CalendarCheck size={18} />
                 Confirmed
@@ -180,7 +199,7 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
         </div>
-        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6 2xl:p-7">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:border-indigo-100 hover:shadow-md sm:p-5 lg:p-6 2xl:p-7">
           <h2 className="text-lg font-semibold text-slate-900">
             Resource Availability
           </h2>
@@ -201,11 +220,7 @@ export default async function AdminDashboardPage() {
                 </p>
               </div>
               <span className="text-sm font-semibold text-emerald-600">
-                {totalResources > 0
-                  ? Math.round(
-                      (availableResources / totalResources) * 100
-                    )
-                  : 0}
+                {availabilityPercent}
                 %
               </span>
             </div>
@@ -214,30 +229,20 @@ export default async function AdminDashboardPage() {
               aria-label="Available resource percentage"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={
-                totalResources > 0
-                  ? Math.round(
-                      (availableResources / totalResources) * 100
-                    )
-                  : 0
-              }
+              aria-valuenow={availabilityPercent}
               className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100"
             >
               <div
-                className="h-full rounded-full bg-emerald-500 transition-all"
+                className="h-full rounded-full bg-emerald-500 transition-[width] duration-700 ease-out motion-reduce:transition-none"
                 style={{
-                  width: `${
-                    totalResources > 0
-                      ? (availableResources / totalResources) * 100
-                      : 0
-                  }%`,
+                  width: `${availabilityPercent}%`,
                 }}
               />
             </div>
           </div>
           <Link
             href="/admin/resources"
-            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 transition-colors duration-200 hover:text-indigo-800"
           >
             Manage resources
             <ArrowRight size={16} />
@@ -245,7 +250,7 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
       {/* Recent reservations */}
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="dashboard-reveal dashboard-delay-3 min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md">
         <div className="flex min-w-0 flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">
@@ -257,7 +262,7 @@ export default async function AdminDashboardPage() {
           </div>
           <Link
             href="/admin/reservations"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 transition hover:text-indigo-700"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 transition-colors duration-200 hover:text-indigo-800"
           >
             View all reservations
             <ArrowRight size={16} />
@@ -270,5 +275,28 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
     </div>
+    </>
+  );
+}
+
+// Stream dashboard data while showing a lightweight loading state.
+export default function AdminDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div role="status" aria-live="polite" className="space-y-5 pb-8 sm:space-y-6">
+          <div className="h-8 w-64 max-w-full animate-pulse rounded-lg bg-slate-200 motion-reduce:animate-none" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div key={index} className="h-32 animate-pulse rounded-2xl bg-slate-100 motion-reduce:animate-none" />
+            ))}
+          </div>
+          <div className="h-64 animate-pulse rounded-2xl bg-slate-100 motion-reduce:animate-none" />
+          <span className="sr-only">Loading admin dashboard...</span>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }

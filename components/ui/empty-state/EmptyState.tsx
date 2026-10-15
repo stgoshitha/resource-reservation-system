@@ -1,4 +1,3 @@
-
 import { Inbox } from "lucide-react";
 
 import type { EmptyStateProps } from "./EmptyState.types";

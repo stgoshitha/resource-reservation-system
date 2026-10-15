@@ -1,4 +1,3 @@
-
 import type { HTMLAttributes } from "react";
 
 export type LoadingSpinnerSize = "sm" | "md" | "lg";

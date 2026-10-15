@@ -1,4 +1,3 @@
-
 import type { SkeletonProps } from "./Loading.types";
 
 const variantStyles = {

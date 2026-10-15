@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { Prisma } from "@/src/generated/prisma/client";
 import { prisma } from "@/src/lib/prisma";

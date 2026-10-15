@@ -98,7 +98,6 @@ button:disabled {
 
 
 /* Modal overlay animations */
-
 @keyframes modal-overlay-in {
   from {
     opacity: 0;
@@ -140,7 +139,6 @@ button:disabled {
 
 
 /* Right drawer animations */
-
 @keyframes modal-right-in {
   from {
     transform: translateX(100%);
@@ -186,7 +184,6 @@ button:disabled {
 }
 
 /* Mobile sidebar slide-in animation */
-
 @keyframes sidebar-slide-in {
   from {
     transform: translateX(-100%);

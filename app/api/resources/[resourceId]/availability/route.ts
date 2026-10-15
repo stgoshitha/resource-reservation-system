@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-
 import { prisma } from "@/src/lib/prisma";
 import { requireUser } from "@/src/lib/auth/permissions";
 import { isBookingTimeAligned } from "@/src/lib/config/booking-timezone";

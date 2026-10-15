@@ -12,7 +12,6 @@ import GenericTable from "@/components/ui/table/GenericTable";
 import type { GenericTableColumn } from "@/components/ui/table/GenericTable.types";
 import Pagination from "@/components/ui/pagination/Pagination";
 import PageHeader from "@/components/ui/page-header/PageHeader";
-
 type OperatingHoursMode = "STANDARD" | "WEEKLY" | "ALWAYS_OPEN";
 type WeeklySchedule = {
   dayOfWeek: number;
@@ -20,7 +19,6 @@ type WeeklySchedule = {
   openingTime: string;
   closingTime: string;
 };
-
 type Category = {
   categoryId: string;
   categoryCode: string;
@@ -33,7 +31,6 @@ type Category = {
   weeklySchedules: WeeklySchedule[];
   createdAt: string;
 };
-
 type CategoryForm = {
   categoryCode: string;
   categoryName: string;
@@ -44,17 +41,13 @@ type CategoryForm = {
   operatingHoursMode: OperatingHoursMode;
   weeklySchedules: WeeklySchedule[];
 };
-
 type CategoryListResponse = {
   message?: string;
   data?: Category[];
   pagination?: { page: number; limit: number; total: number; totalPages: number };
 };
-
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-
 function defaultSchedules(): WeeklySchedule[] {
   return DAYS.map((_, dayOfWeek) => ({
     dayOfWeek,
@@ -63,7 +56,6 @@ function defaultSchedules(): WeeklySchedule[] {
     closingTime: "18:00",
   }));
 }
-
 function emptyCategoryForm(): CategoryForm {
   return {
     categoryCode: "",
@@ -76,12 +68,10 @@ function emptyCategoryForm(): CategoryForm {
     weeklySchedules: defaultSchedules(),
   };
 }
-
 async function readResponse(response: Response): Promise<Record<string, unknown>> {
   const body: unknown = await response.json().catch(() => ({}));
   return body && typeof body === "object" ? (body as Record<string, unknown>) : {};
 }
-
 function getErrorMessage(result: Record<string, unknown>, fallback: string): string {
   const errors = result.errors;
   if (errors && typeof errors === "object") {
@@ -90,7 +80,6 @@ function getErrorMessage(result: Record<string, unknown>, fallback: string): str
   }
   return typeof result.message === "string" ? result.message : fallback;
 }
-
 function validTimeRange(openingTime: string, closingTime: string): boolean {
   return (
     TIME_PATTERN.test(openingTime) &&
@@ -98,7 +87,6 @@ function validTimeRange(openingTime: string, closingTime: string): boolean {
     openingTime !== closingTime
   );
 }
-
 type TimeSelectorProps = {
   id: string;
   label: string;
@@ -106,7 +94,6 @@ type TimeSelectorProps = {
   disabled: boolean;
   onChange: (value: string) => void;
 };
-
 function TimeSelector({ id, label, value, disabled, onChange }: TimeSelectorProps) {
   return (
     <FormField id={id} label={label} required>
@@ -121,7 +108,6 @@ function TimeSelector({ id, label, value, disabled, onChange }: TimeSelectorProp
     </FormField>
   );
 }
-
 export default function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +123,7 @@ export default function CategoryManagement() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState<CategoryForm>(emptyCategoryForm);
   const [deleting, setDeleting] = useState<Category | null>(null);
+  // Load categories with server-side search and pagination.
   const fetchCategories = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
     try {
@@ -173,6 +160,7 @@ export default function CategoryManagement() {
     setForm(emptyCategoryForm());
     setFormOpen(true);
   }
+  // Fetch fresh category details before editing weekly schedules.
   async function openEdit(category: Category) {
     if (loadingEdit) return;
     setLoadingEdit(true);
@@ -227,6 +215,7 @@ export default function CategoryManagement() {
       ),
     }));
   }
+  // Validate operating hours before submitting category changes.
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
@@ -283,6 +272,7 @@ export default function CategoryManagement() {
       setSaving(false);
     }
   }
+  // Delete the selected category and refresh the current page.
   async function handleDelete() {
     if (!deleting) return;
     try {
@@ -343,22 +333,22 @@ export default function CategoryManagement() {
     {
       key: "actions", header: "Actions", render: (row) => (
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => void openEdit(row)} disabled={loadingEdit} aria-label={`Edit ${row.categoryName}`} className="rounded-lg p-2 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"><Pencil size={17} /></button>
-          <button type="button" onClick={() => setDeleting(row)} aria-label={`Delete ${row.categoryName}`} className="rounded-lg p-2 text-red-600 hover:bg-red-50"><Trash2 size={17} /></button>
+          <button type="button" onClick={() => void openEdit(row)} disabled={loadingEdit} aria-label={`Edit ${row.categoryName}`} className="rounded-lg p-2 text-indigo-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-50 hover:shadow-sm active:scale-95 motion-reduce:transform-none disabled:opacity-50"><Pencil size={17} /></button>
+          <button type="button" onClick={() => setDeleting(row)} aria-label={`Delete ${row.categoryName}`} className="rounded-lg p-2 text-red-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-sm active:scale-95 motion-reduce:transform-none"><Trash2 size={17} /></button>
         </div>
       ),
     },
   ], [loadingEdit]);
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
       <PageHeader
         title="Category Management"
         description="Manage resource categories, booking intervals, and operating hours."
         breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Categories" }]}
         actions={<Button onClick={openCreate}><Plus size={18} />Add Category</Button>}
       />
-      <div className="space-y-4">
-        <form onSubmit={handleSearch} className="flex max-w-lg gap-2">
+      <div className="min-w-0 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
+        <form onSubmit={handleSearch} className="flex w-full max-w-lg flex-col gap-2 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <FormSearch aria-label="Search categories" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} maxLength={100} placeholder="Search category name or code..." />
           </div>
@@ -444,7 +434,7 @@ export default function CategoryManagement() {
               <div className="space-y-3">
                 <p className="text-xs text-slate-500">Configure all seven days. Overnight hours are supported; closed days have no opening hours.</p>
                 {form.weeklySchedules.map((schedule) => (
-                  <div key={schedule.dayOfWeek} className="rounded-xl border border-slate-200 p-3">
+                  <div key={schedule.dayOfWeek} className="rounded-xl border border-slate-200 p-3 transition-colors duration-200 hover:border-indigo-200 hover:bg-indigo-50/30">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-medium text-slate-800">{DAYS[schedule.dayOfWeek]}</span>
                       <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">

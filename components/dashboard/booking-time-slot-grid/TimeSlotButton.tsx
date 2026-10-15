@@ -1,4 +1,5 @@
 "use client";
+
 import type { TimeSlot } from "./booking-time-utils";
 interface TimeSlotButtonProps {
   slot: TimeSlot;

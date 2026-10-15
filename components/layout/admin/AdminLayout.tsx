@@ -1,11 +1,8 @@
-
 "use client";
 
 import { useState } from "react";
-
 import { Header } from "@/components/layout/header-components";
 import { Sidebar } from "@/components/layout/sidebar-component";
-
 import type { ReactNode } from "react";
 
 interface AdminLayoutProps {

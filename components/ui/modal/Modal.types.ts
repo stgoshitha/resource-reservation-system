@@ -1,4 +1,3 @@
-
 import type { ReactNode } from "react";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl";

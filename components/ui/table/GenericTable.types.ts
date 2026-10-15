@@ -1,4 +1,3 @@
-
 import type { Key, ReactNode } from "react";
 
 export interface GenericTableColumn<T> {

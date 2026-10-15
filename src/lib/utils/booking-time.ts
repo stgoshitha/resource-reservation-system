@@ -1,4 +1,3 @@
-
 export function isValidInterval(interval: number): boolean {
   return (
     Number.isInteger(interval) &&

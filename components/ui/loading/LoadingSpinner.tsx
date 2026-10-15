@@ -1,4 +1,3 @@
-
 import type { LoadingSpinnerProps } from "./Loading.types";
 
 const sizeStyles = {

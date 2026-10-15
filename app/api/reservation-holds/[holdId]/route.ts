@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { requireUser } from "@/src/lib/auth/permissions";

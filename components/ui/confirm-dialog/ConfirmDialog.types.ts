@@ -1,4 +1,3 @@
-
 export type ConfirmDialogVariant =
   | "danger"
   | "warning"

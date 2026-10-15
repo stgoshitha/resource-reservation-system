@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { requireUser } from "@/src/lib/auth/permissions";
 

@@ -1,8 +1,6 @@
-
 "use client";
 
 import * as RadixTabs from "@radix-ui/react-tabs";
-
 import type { TabsProps } from "./Tabs.types";
 
 export default function Tabs({
