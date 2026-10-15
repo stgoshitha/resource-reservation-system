@@ -452,22 +452,27 @@ export default function BookingTimeSlotGrid({
               )}
             </>
           )}
-          <div className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
-            <div className="flex items-center gap-3">
+          <div className="mt-5 min-w-0 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3 sm:p-4">
+            <div className="flex min-w-0 items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600"><CalendarDays size={20} /></span>
-              <div className="min-w-0 flex-1"><h4 className="text-sm font-bold text-slate-900">Your selected reservation time</h4><p className="mt-1 text-xs text-slate-500">{selectedMinutes ? `${selectedMinutes} minutes selected` : "Choose an available time slot to start your reservation."}</p></div>
-              <span className="rounded-lg border border-indigo-100 bg-white px-3 py-2 text-sm font-semibold text-indigo-700">{startIndex !== null && endIndex !== null ? `${timeText(startIndex * interval)} – ${timeText(endIndex * interval)}` : "—"}</span>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-bold leading-5 text-slate-900">Your selected reservation time</h4>
+                <p className="mt-1 text-xs text-slate-500">{selectedMinutes ? `${selectedMinutes} minutes selected` : "Choose an available time slot to start your reservation."}</p>
+              </div>
+            </div>
+            <div className="mt-3 min-w-0 rounded-xl border border-indigo-100 bg-white px-3 py-3 text-center text-sm font-semibold leading-5 text-indigo-700 sm:text-base">
+              {startIndex !== null && endIndex !== null ? `${timeText(startIndex * interval)} – ${timeText(endIndex * interval)}` : "No time selected"}
             </div>
             {startIndex !== null && endIndex !== null && (
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-indigo-100 pt-3">
-                <button type="button" disabled={disabled || !canExtend} onClick={extend} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-40">+ Add {interval} minutes</button>
-                <button type="button" disabled={disabled} onClick={() => updateSelection(null, null)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Clear selection</button>
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-indigo-100 pt-3">
+                <button type="button" disabled={disabled || !canExtend} onClick={extend} className="min-h-11 min-w-0 rounded-xl bg-indigo-600 px-2 py-2 text-center text-xs font-semibold leading-4 text-white transition-colors hover:bg-indigo-700 disabled:opacity-40 sm:px-3 sm:text-sm">+ Add {interval} min</button>
+                <button type="button" disabled={disabled} onClick={() => updateSelection(null, null)} className="min-h-11 min-w-0 rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-xs font-semibold leading-4 text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-40 sm:px-3 sm:text-sm">Clear selection</button>
               </div>
             )}
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-xs text-slate-600">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-1 text-[11px] text-slate-600 sm:gap-x-5 sm:text-xs">
         {[
           ["Available", "bg-emerald-200"],
           ["Reserved", "bg-rose-200"],
