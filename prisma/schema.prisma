@@ -1,0 +1,219 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+// UserRole enum
+enum UserRole {
+  ADMIN
+  USER
+
+  @@map("user_role_type")
+}
+
+// ResourceStatus enum
+enum ResourceStatus {
+  AVAILABLE
+  MAINTENANCE
+  INACTIVE
+
+  @@map("resource_status_type")
+}
+
+// ReservationStatus enum
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+
+  @@map("reservation_status_type")
+}
+
+// OperatingHoursMode enum
+enum OperatingHoursMode {
+  STANDARD
+  WEEKLY
+  ALWAYS_OPEN
+
+  @@map("operating_hours_mode")
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+//User model
+model User {
+  userId       String   @id @default(dbgenerated("gen_random_uuid()")) @map("user_id") @db.Uuid
+  fullName     String   @map("full_name") @db.VarChar(150)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash")
+  userRole     UserRole @default(USER) @map("user_role")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions UserSession[]
+
+  createdCategories ResourceCategory[] @relation("CategoryCreatedBy")
+  updatedCategories ResourceCategory[] @relation("CategoryUpdatedBy")
+
+  createdResources         Resource[]                 @relation("ResourceCreatedBy")
+  updatedResources         Resource[]                 @relation("ResourceUpdatedBy")
+  createdCategorySchedules ResourceCategorySchedule[] @relation("CategoryScheduleCreatedBy")
+  updatedCategorySchedules ResourceCategorySchedule[] @relation("CategoryScheduleUpdatedBy")
+
+  reservations    Reservation[]
+  reservationHold ReservationHold[]
+
+  @@map("users")
+}
+
+//UserSession model
+model UserSession {
+  sessionId        String   @id @default(dbgenerated("gen_random_uuid()")) @map("session_id") @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  sessionTokenHash String   @unique @map("session_token_hash")
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+//ResourceCategory model
+model ResourceCategory {
+  categoryId             String             @id @default(dbgenerated("gen_random_uuid()")) @map("category_id") @db.Uuid
+  categoryCode           String             @unique @map("category_code") @db.VarChar(20)
+  categoryName           String             @unique @map("category_name") @db.VarChar(100)
+  description            String?
+  bookingIntervalMinutes Int                @default(15) @map("booking_interval_minutes")
+  openingTime            String             @default("08:00") @map("opening_time") @db.VarChar(5)
+  closingTime            String             @default("18:00") @map("closing_time") @db.VarChar(5)
+  operatingHoursMode     OperatingHoursMode @default(STANDARD) @map("operating_hours_mode")
+  createdAt              DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy String  @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  creator User  @relation("CategoryCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
+  updater User? @relation("CategoryUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
+
+  resources       Resource[]
+  weeklySchedules ResourceCategorySchedule[]
+
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resource_categories")
+}
+
+//Resource model
+model Resource {
+  resourceId     String         @id @default(dbgenerated("gen_random_uuid()")) @map("resource_id") @db.Uuid
+  categoryId     String         @map("category_id") @db.Uuid
+  resourceCode   String         @unique @map("resource_code") @db.VarChar(30)
+  resourceName   String         @map("resource_name") @db.VarChar(150)
+  description    String?
+  location       String?        @db.VarChar(255)
+  capacity       Int?
+  resourceStatus ResourceStatus @default(AVAILABLE) @map("resource_status")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy String  @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  category ResourceCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Restrict)
+  creator  User             @relation("ResourceCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
+  updater  User?            @relation("ResourceUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
+
+  reservations    Reservation[]
+  reservationHold ReservationHold[]
+
+  @@index([categoryId])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resources")
+}
+
+//Reservation model
+model Reservation {
+  reservationId     String            @id @default(dbgenerated("gen_random_uuid()")) @map("reservation_id") @db.Uuid
+  resourceId        String            @map("resource_id") @db.Uuid
+  userId            String            @map("user_id") @db.Uuid
+  reservationTitle  String            @map("reservation_title") @db.VarChar(150)
+  startTime         DateTime          @map("start_time") @db.Timestamptz(6)
+  endTime           DateTime          @map("end_time") @db.Timestamptz(6)
+  reservationStatus ReservationStatus @default(CONFIRMED) @map("reservation_status")
+  notes             String?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User     @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  resource Resource @relation(fields: [resourceId], references: [resourceId], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([resourceId, startTime])
+  @@map("reservations")
+}
+
+// ReservationHold model
+model ReservationHold {
+  holdId     String   @id @default(dbgenerated("gen_random_uuid()")) @map("hold_id") @db.Uuid
+  resourceId String   @map("resource_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  startTime  DateTime @map("start_time") @db.Timestamptz(6)
+  endTime    DateTime @map("end_time") @db.Timestamptz(6)
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     User     @relation(fields: [userId], references: [userId], onDelete: Restrict)
+  resource Resource @relation(fields: [resourceId], references: [resourceId], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([resourceId, startTime])
+  @@index([expiresAt])
+  @@map("reservation_holds")
+}
+
+// ResourceCategorySchedule model
+model ResourceCategorySchedule {
+  scheduleId  String   @id @default(dbgenerated("gen_random_uuid()")) @map("schedule_id") @db.Uuid
+  categoryId  String   @map("category_id") @db.Uuid
+  dayOfWeek   Int      @map("day_of_week") // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+  isClosed    Boolean  @default(false) @map("is_closed")
+  openingTime String   @default("08:00") @map("opening_time") @db.VarChar(5)
+  closingTime String   @default("18:00") @map("closing_time") @db.VarChar(5)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  createdBy String  @map("created_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+
+  category ResourceCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade)
+
+  creator User  @relation("CategoryScheduleCreatedBy", fields: [createdBy], references: [userId], onDelete: Restrict)
+  updater User? @relation("CategoryScheduleUpdatedBy", fields: [updatedBy], references: [userId], onDelete: SetNull)
+
+  @@unique([categoryId, dayOfWeek])
+  @@index([categoryId])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resource_category_schedules")
+}

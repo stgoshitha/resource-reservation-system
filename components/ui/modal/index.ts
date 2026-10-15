@@ -1,0 +1,7 @@
+export { default as Modal } from "./Modal";
+
+export type {
+  ModalProps,
+  ModalSize,
+  ModalPosition,
+} from "./Modal.types";
