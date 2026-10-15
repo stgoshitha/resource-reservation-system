@@ -106,8 +106,8 @@ async function DashboardContent() {
           href="/admin/resources"
           className="inline-flex min-h-10 w-full items-center justify-center gap-2 self-start whitespace-nowrap rounded-xl sm:w-auto md:shrink-0 bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md active:translate-y-0 motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
         >
-          <Plus size={17} />
           Manage Resources
+          <ArrowRight size={16} />
         </Link>
       </div>
       {/* Statistics */}
