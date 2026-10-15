@@ -233,13 +233,13 @@ export default function ResourceBooking() {
               </div>
             ))}
           </dl>
-          <div className="flex flex-wrap justify-end gap-3">
+          <div className="flex justify-end gap-3 [&>button]:w-full sm:[&>button]:w-auto">
             <Button type="submit" loading={saving} disabled={saving || !hold || holdSecondsLeft <= 0}>Confirm Reservation</Button>
           </div>
           <p className="text-xs text-slate-500">The server verifies availability when you confirm and prevents overlapping bookings.</p>
         </form>
       )}
-      <div className="flex items-center justify-between gap-3">
+      <div className={`flex gap-3 ${step === 4 ? "flex-col sm:flex-row sm:items-center sm:justify-between [&>button]:w-full sm:[&>button]:w-auto" : "items-center justify-between"}`}>
         <Button type="button" variant="outline" disabled={step === 1 || saving}
           onClick={() => { void goBack(); }}>← Back</Button>
         {step < 4 && (

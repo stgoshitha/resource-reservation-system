@@ -3,6 +3,8 @@
 import Link from "next/link";
 import {
   CalendarDays,
+  CircleX,
+  List,
   Clock3,
   Download,
   Eye,
@@ -51,30 +53,30 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
     detailsReservation,
     cancelReservation,
   } = model;
-  const filters: { id: Filter; label: string }[] = [
-    { id: "upcoming", label: "Upcoming" },
-    { id: "past", label: "Past" },
-    { id: "cancelled", label: "Cancelled" },
-    { id: "all", label: "All" },
+  const filters: { id: Filter; label: string; icon: typeof CalendarDays }[] = [
+    { id: "upcoming", label: "Upcoming", icon: CalendarDays },
+    { id: "past", label: "Past", icon: Clock3 },
+    { id: "cancelled", label: "Cancelled", icon: CircleX },
+    { id: "all", label: "All", icon: List },
   ];
   const canCancelReservation = (reservation: Reservation) =>
     reservation.reservationStatus !== "CANCELLED" &&
     Date.parse(reservation.startTime) > now;
   const renderActions = (reservation: Reservation, mobile = false) => (
-    <div className={`flex flex-wrap items-center gap-2 ${mobile ? "justify-start" : "justify-end"}`}>
+    <div className={`gap-2 ${mobile ? "grid w-full grid-cols-3" : "flex flex-wrap items-center justify-end"}`}>
       <button
         type="button"
         onClick={() => setDetailsId(reservation.reservationId)}
-        className="group/action inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-100 hover:shadow-sm active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 motion-reduce:transform-none"
+        className={`group/action inline-flex min-h-9 items-center justify-center gap-1.5 ${mobile ? "min-w-0 w-full min-h-10 gap-1 px-1.5 whitespace-nowrap" : ""} rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-100 hover:shadow-sm active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 motion-reduce:transform-none`}
       >
         <Eye className="h-3.5 w-3.5 transition-transform duration-200 group-hover/action:scale-110" />
-        {mobile ? "View details" : "View"}
+        View
       </button>
       <button
         type="button"
         onClick={() => downloadReservationPDF(reservation)}
         aria-label={`Download PDF for ${reservation.reservationTitle}`}
-        className="group/action inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-sm active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 motion-reduce:transform-none"
+        className={`group/action inline-flex min-h-9 items-center justify-center gap-1.5 ${mobile ? "min-w-0 w-full min-h-10 gap-1 px-1.5 whitespace-nowrap" : ""} rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 hover:shadow-sm active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 motion-reduce:transform-none`}
       >
         <Download className="h-3.5 w-3.5 transition-transform duration-200 group-hover/action:translate-y-0.5" /> PDF
       </button>
@@ -82,7 +84,7 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
         <button
           type="button"
           onClick={() => setConfirmId(reservation.reservationId)}
-          className="group/action inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-100 hover:shadow-sm active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 motion-reduce:transform-none"
+          className={`group/action inline-flex min-h-9 items-center justify-center gap-1.5 ${mobile ? "min-w-0 w-full min-h-10 gap-1 px-1.5 whitespace-nowrap" : ""} rounded-lg border border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-200 hover:bg-rose-100 hover:shadow-sm active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 motion-reduce:transform-none`}
         >
           <X className="h-3.5 w-3.5 transition-transform duration-200 group-hover/action:rotate-90" /> Cancel
         </button>
@@ -105,11 +107,14 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
       key: "date",
       header: "Date & Time",
       render: (reservation) => (
-        <div className="whitespace-nowrap">
+        <div className="flex items-center gap-3 whitespace-nowrap">
+          <CalendarDays className="h-4 w-4 shrink-0 text-slate-600" />
+          <div>
           <p className="text-sm font-medium text-slate-800">{DATE_FORMAT.format(new Date(reservation.startTime))}</p>
           <p className="mt-1 text-xs text-slate-500">
             {TIME_FORMAT.format(new Date(reservation.startTime))} – {TIME_FORMAT.format(new Date(reservation.endTime))}
           </p>
+          </div>
         </div>
       ),
     },
@@ -117,7 +122,8 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
       key: "duration",
       header: "Duration",
       render: (reservation) => (
-        <span className="whitespace-nowrap text-sm text-slate-600">
+        <span className="inline-flex items-center gap-2.5 whitespace-nowrap text-sm text-slate-600">
+          <Clock3 className="h-4 w-4 text-slate-600" />
           {formatDuration(reservation.startTime, reservation.endTime)}
         </span>
       ),
@@ -128,7 +134,8 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
       render: (reservation) => {
         const status = reservationStatus(reservation, now);
         return (
-          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(status)}`}>
+          <span className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold ${statusClass(status)}`}>
+            <span className="h-2 w-2 rounded-full bg-current" />
             {status}
           </span>
         );
@@ -162,7 +169,7 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
       <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 p-4 sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex max-w-full items-center gap-1 overflow-x-auto border-b border-slate-200 lg:border-b-0" role="group" aria-label="Filter reservations">
+            <div className="flex max-w-full items-center gap-2 overflow-x-auto" role="group" aria-label="Filter reservations">
               {filters.map((item) => {
                 const active = filter === item.id;
                 return (
@@ -171,13 +178,13 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
                     type="button"
                     aria-pressed={active}
                     onClick={() => { setFilter(item.id); setPage(1); }}
-                    className={`group/tab relative flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-3 text-sm font-medium transition-all duration-300 focus-visible:outline-2 focus-visible:outline-indigo-600 ${active ? "font-semibold text-indigo-600" : "text-slate-500 hover:-translate-y-0.5 hover:text-indigo-600"}`}
+                    className={`group/tab relative flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-indigo-600 ${active ? "bg-indigo-50 font-semibold text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-indigo-600"}`}
                   >
+                    <item.icon className="h-4 w-4 shrink-0" />
                     {item.label}
                     <span className={`rounded-md px-1.5 py-0.5 text-xs transition-colors duration-300 ${active ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-500 group-hover/tab:bg-indigo-50 group-hover/tab:text-indigo-600"}`}>
                       {counts[item.id]}
                     </span>
-                    <span className={`absolute inset-x-2 bottom-0 h-0.5 origin-center bg-indigo-600 transition-transform duration-300 ease-out ${active ? "scale-x-100" : "scale-x-0 group-hover/tab:scale-x-100"}`} />
                   </button>
                 );
               })}
@@ -252,7 +259,7 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
                         <h3 className="break-words text-sm font-semibold text-slate-900">{reservation.reservationTitle}</h3>
                         <p className="mt-1 break-words text-xs text-slate-500">{reservation.resource.resourceName}</p>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(status)}`}>{status}</span>
+                      <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(status)}`}><span className="h-1.5 w-1.5 rounded-full bg-current" />{status}</span>
                     </div>
                     <div className="mt-4 space-y-2.5 border-t border-slate-100 pt-3 text-sm text-slate-600">
                       <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-indigo-500" />{DATE_FORMAT.format(new Date(reservation.startTime))}</p>

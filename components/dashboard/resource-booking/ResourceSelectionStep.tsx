@@ -40,11 +40,11 @@ export default function ResourceSelectionStep({
   } = booking;
 
   return (
-    <section className="min-w-0 space-y-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+    <section className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:space-y-5 sm:p-6">
+      <div className="flex min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3 sm:gap-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-lg font-semibold uppercase tracking-wider text-indigo-600">Step 1· Select a Resource</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600 sm:text-lg">Step 1· Select a Resource</p>
           </div>
         </div>
         <div className="w-full lg:w-md">
@@ -65,7 +65,7 @@ export default function ResourceSelectionStep({
       </div>
 
       {!loading && resources.length > 0 && (
-        <div className="flex justify-end">
+        <div className="flex justify-start sm:justify-end">
           <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/70 px-3.5 py-2 text-xs font-medium text-indigo-700 sm:text-sm">
             <Layers3 className="h-4 w-4 shrink-0" aria-hidden="true" />
 
@@ -81,7 +81,7 @@ export default function ResourceSelectionStep({
       )}
 
       <div
-        className="flex max-w-full items-center gap-1 overflow-x-auto border-b border-slate-200 scrollbar-none"
+        className="flex w-full min-w-0 items-center gap-1 overflow-x-auto border-b border-slate-200 scrollbar-none"
         aria-label="Resource categories"
       >
         <button
@@ -148,7 +148,7 @@ export default function ResourceSelectionStep({
         </div>
       ) : (
         <>
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             {visibleResources.map((resource) => {
               const isSelected = resourceId === resource.resourceId;
               const categoryName = resource.category.categoryName.toLowerCase();
@@ -160,16 +160,16 @@ export default function ResourceSelectionStep({
               return (
                 <article
                   key={resource.resourceId}
-                  className={`rounded-xl border bg-white p-4 transition-colors sm:p-5 ${isSelected
+                  className={`min-w-0 rounded-xl border bg-white p-3 transition-colors sm:p-5 ${isSelected
                     ? "border-indigo-500 bg-indigo-50/20"
                     : "border-slate-200 hover:border-indigo-200"
                     }`}
                 >
-                  <div className="flex min-w-0 items-start gap-3 sm:gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <div className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[48px_minmax(0,1fr)_auto] sm:gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 sm:h-12 sm:w-12">
                       <ResourceIcon className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="break-words text-base font-semibold text-slate-900 sm:text-lg">
                           {resource.resourceName}
@@ -186,7 +186,7 @@ export default function ResourceSelectionStep({
                       type="button"
                       onClick={() => selectResource(resource.resourceId)}
                       disabled={saving}
-                      className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 ${isSelected
+                      className={`col-span-2 inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold sm:col-span-1 sm:w-auto transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 ${isSelected
                         ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                         : "bg-indigo-600 text-white hover:bg-indigo-700"
                         }`}
@@ -195,10 +195,10 @@ export default function ResourceSelectionStep({
                       {!isSelected && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
                     </button>
                   </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-600 sm:text-sm">
-                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <div className="mt-3 grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600 sm:mt-4 sm:flex sm:flex-wrap sm:gap-x-5 sm:border-t-0 sm:pt-0 sm:text-sm">
+                    <span className="col-span-2 inline-flex min-w-0 items-start gap-1.5 sm:col-span-1 sm:items-center">
                       <MapPin className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-                      <span className="break-words">{resource.location || "Location not specified"}</span>
+                      <span className="min-w-0 break-all sm:break-words">{resource.location || "Location not specified"}</span>
                     </span>
                     <span className="inline-flex items-center gap-1.5">
                       <Users className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
