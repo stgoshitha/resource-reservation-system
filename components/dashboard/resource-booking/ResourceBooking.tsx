@@ -1,9 +1,9 @@
 "use client";
 import Link from "next/link";
-import { Clock3 } from "lucide-react";
+import { Clock3, CalendarDays, FileText, Type, UsersRound } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import BookingTimeSlotGrid from "@/components/dashboard/BookingTimeSlotGrid";
-import { FormField, FormInput, FormTextarea } from "@/components/ui/form";
+import { FormInput, FormTextarea } from "@/components/ui/form";
 import useResourceBooking from "./useResourceBooking";
 import ResourceSelectionStep from "./ResourceSelectionStep";
 
@@ -160,18 +160,55 @@ export default function ResourceBooking() {
         </section>
       )}
       {step === 3 && selected && (
-        <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-          <div>
-            <p className="text-lg font-semibold uppercase tracking-wider text-indigo-600">Step 3 · Reservation Details</p>
-            <h2 className="mt-1 text-sm text-slate-500">Tell us about your reservation</h2>
-            <p className="mt-1 text-sm text-slate-500">{selected.resourceName} · {formatTime(startTime)} – {formatTime(endTime)}</p>
+        <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex items-start gap-3">
+            <p className="text-lg font-semibold uppercase tracking-wider text-indigo-600">Step 4 · Reservation Details</p>
           </div>
-          <FormField id="reservation-title" label="Reservation title" required>
-            <FormInput id="reservation-title" value={title} onChange={(event) => { setTitle(event.target.value); resetAvailability(); }} maxLength={150} placeholder="e.g. Team meeting" required disabled={saving} />
-          </FormField>
-          <FormField id="booking-notes" label="Notes (optional)">
-            <FormTextarea id="booking-notes" value={notes} onChange={(event) => { setNotes(event.target.value); resetAvailability(); }} maxLength={1000} rows={4} placeholder="Additional information" disabled={saving} />
-          </FormField>
+
+          <div className="grid gap-4 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-slate-50 to-violet-50/80 p-4 sm:grid-cols-3 sm:p-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600"><UsersRound size={23} aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Resource</p>
+                <p className="truncate text-sm font-semibold text-slate-900 sm:text-base" title={selected.resourceName}>{selected.resourceName}</p>
+                <p className="truncate text-xs text-slate-500">{selected.category.categoryName}</p>
+              </div>
+            </div>
+            <div className="flex min-w-0 items-center gap-3 border-slate-200 sm:border-l sm:pl-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><CalendarDays size={23} aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Date</p>
+                <p className="text-sm font-semibold text-slate-900 sm:text-base">{new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Colombo", month: "short", day: "numeric", year: "numeric" }).format(new Date(startTime))}</p>
+                <p className="text-xs text-slate-500">{new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Colombo", weekday: "long" }).format(new Date(startTime))}</p>
+              </div>
+            </div>
+            <div className="flex min-w-0 items-center gap-3 border-slate-200 sm:border-l sm:pl-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"><Clock3 size={23} aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-500">Time · Sri Lanka</p>
+                <p className="text-sm font-semibold text-slate-900 sm:text-base">{new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit", hour12: true }).format(new Date(startTime))} – {new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit", hour12: true }).format(new Date(endTime))}</p>
+                <p className="text-xs text-slate-500">{Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000)} minutes</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+            <div>
+              <div className="mb-2 flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Type size={19} aria-hidden="true" /></span>
+                <label htmlFor="reservation-title" className="text-sm font-semibold text-slate-900">Reservation title <span className="text-red-500">*</span></label>
+              </div>
+              <FormInput id="reservation-title" value={title} onChange={(event) => { setTitle(event.target.value); resetAvailability(); }} maxLength={150} placeholder="e.g. Team meeting, Project discussion, Client call" required disabled={saving} />
+            </div>
+            <div>
+              <div className="mb-2 flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><FileText size={19} aria-hidden="true" /></span>
+                <label htmlFor="booking-notes" className="text-sm font-semibold text-slate-900">Notes <span className="font-normal text-slate-500">(optional)</span></label>
+              </div>
+              <FormTextarea id="booking-notes" value={notes} onChange={(event) => { setNotes(event.target.value); resetAvailability(); }} maxLength={1000} rows={4} placeholder="Additional information (e.g. agenda, participants, equipment, etc.)" disabled={saving} />
+              <p className="mt-1 text-right text-xs tabular-nums text-slate-400">{notes.length}/1000</p>
+            </div>
+          </div>
         </section>
       )}
       {step === 4 && selected && (
@@ -196,7 +233,7 @@ export default function ResourceBooking() {
               </div>
             ))}
           </dl>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
             <Button type="submit" loading={saving} disabled={saving || !hold || holdSecondsLeft <= 0}>Confirm Reservation</Button>
           </div>
           <p className="text-xs text-slate-500">The server verifies availability when you confirm and prevents overlapping bookings.</p>

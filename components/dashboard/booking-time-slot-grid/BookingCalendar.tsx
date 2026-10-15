@@ -18,10 +18,13 @@ interface BookingCalendarProps {
   today: string;
   selectDate: (value: string) => void;
   chooseToday: () => void;
+  inline?: boolean;
 }
-export default function BookingCalendar({ calendarRef, calendarOpen, setCalendarOpen, visibleMonth, setVisibleMonth, date, disabled, selectedDateLabel, monthTitle, previousMonthDisabled, calendarDays, today, selectDate, chooseToday }: BookingCalendarProps) {
+export default function BookingCalendar({ calendarRef, calendarOpen, setCalendarOpen, visibleMonth, setVisibleMonth, date, disabled, selectedDateLabel, monthTitle, previousMonthDisabled, calendarDays, today, selectDate, chooseToday, inline = false }: BookingCalendarProps) {
   return (
-      <div className="relative max-w-sm" ref={calendarRef}>
+      <div className={inline ? "w-full" : "relative max-w-sm"} ref={calendarRef}>
+        {!inline && (
+          <>
         <label
           id="booking-date-label"
           className="mb-2 block text-sm font-semibold text-slate-700"
@@ -60,11 +63,13 @@ export default function BookingCalendar({ calendarRef, calendarOpen, setCalendar
             <CalendarDays size={18} />
           </span>
         </button>
-        {calendarOpen && !disabled && (
+          </>
+        )}
+        {(inline || (calendarOpen && !disabled)) && (
           <div
             role="dialog"
             aria-label="Choose booking date"
-            className="absolute left-0 top-full z-50 mt-2 w-full min-w-[290px] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/70 sm:p-5"
+            className={inline ? "w-full" : "absolute left-0 top-full z-50 mt-2 w-full min-w-[290px] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/70 sm:p-5"}
           >
             <div className="mb-4 flex items-center justify-between gap-2">
               <h4 className="text-sm font-bold text-slate-900">
@@ -112,7 +117,7 @@ export default function BookingCalendar({ calendarRef, calendarOpen, setCalendar
               {WEEKDAYS.map((weekday) => (
                 <div
                   key={weekday}
-                  className="flex h-8 items-center justify-center text-[11px] font-semibold text-slate-400"
+                  className="flex h-9 items-center justify-center text-xs font-semibold text-slate-500"
                 >
                   {weekday}
                 </div>
@@ -128,7 +133,7 @@ export default function BookingCalendar({ calendarRef, calendarOpen, setCalendar
                     }).format(parseCalendarDate(value))}
                     aria-pressed={date === value}
                     onClick={() => selectDate(value)}
-                    className={`relative flex aspect-square min-h-9 items-center justify-center rounded-lg text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
+                    className={`relative flex aspect-square min-h-10 items-center justify-center rounded-lg text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
                       date === value
                         ? "bg-indigo-600 font-bold text-white shadow-sm shadow-indigo-200"
                         : value < today
@@ -148,7 +153,7 @@ export default function BookingCalendar({ calendarRef, calendarOpen, setCalendar
                 ),
               )}
             </div>
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+            <div className={inline ? "mt-4 flex items-center justify-between border-t border-slate-100 pt-3" : "mt-4 flex items-center justify-between border-t border-slate-100 pt-3"}>
               <span className="flex items-center gap-1.5 text-xs text-slate-400">
                 <Clock3 size={13} /> Sri Lanka time
               </span>
