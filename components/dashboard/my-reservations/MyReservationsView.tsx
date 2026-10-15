@@ -1,6 +1,6 @@
 "use client";
-
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import {
   CalendarDays,
   CircleX,
@@ -29,7 +29,6 @@ import {
 import type { Filter } from "./reservation-utils";
 import type { MyReservationsModel } from "./useMyReservations";
 type Reservation = MyReservationsModel["visible"][number];
-
 export default function MyReservationsView({ model }: { model: MyReservationsModel }) {
   const {
     loading,
@@ -376,9 +375,9 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
           </div>
         )}
       </Modal>
-      {confirmId && (
+      {confirmId && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/50 p-4"
           role="presentation"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget && !cancellingId) {
@@ -399,24 +398,26 @@ export default function MyReservationsView({ model }: { model: MyReservationsMod
             <p id="cancel-description" className="mt-2 text-sm text-slate-600">
               This will cancel your booking. You can create a new reservation later.
             </p>
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
               <button
                 type="button"
                 disabled={Boolean(cancellingId)}
                 onClick={() => setConfirmId(null)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-[0.98]">
+                className="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg border border-slate-200 px-2 py-2.5 text-xs font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-[0.98] disabled:opacity-50 sm:w-auto sm:px-4 sm:text-sm">
                 Keep reservation
               </button>
               <button
                 type="button"
                 disabled={Boolean(cancellingId)}
                 onClick={() => void cancelReservation(confirmId)}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-rose-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50">
+                className="inline-flex min-h-11 w-full items-center justify-center whitespace-nowrap rounded-lg bg-rose-600 px-2 py-2.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-rose-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 sm:w-auto sm:px-4 sm:text-sm">
                 {cancellingId ? "Cancelling..." : "Yes, cancel"}
               </button>
             </div>
           </div>
         </div>
+      ,
+        document.body
       )}
     </main>
   );
