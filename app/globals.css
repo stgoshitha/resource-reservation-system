@@ -221,3 +221,26 @@ button:disabled {
     animation: none;
   }
 }
+
+/* Smooth floating entrance */
+@keyframes auth-float-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 35px, 0) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.auth-float-in {
+  animation: auth-float-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-float-in {
+    animation: none;
+  }
+}
