@@ -6,6 +6,44 @@ type RouteContext = {
   params: Promise<{ holdId: string }>;
 };
 
+// Verify and retrieve an active hold owned by the current authenticated user.
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const auth = await requireUser();
+    if (auth.error === "UNAUTHORIZED" || !auth.user) {
+      return NextResponse.json({ message: "Authentication required" }, { status: 401 });
+    }
+    if (auth.error === "FORBIDDEN") {
+      return NextResponse.json({ message: "Access denied" }, { status: 403 });
+    }
+    const { holdId } = await context.params;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(holdId)) {
+      return NextResponse.json({ message: "Invalid reservation hold ID" }, { status: 400 });
+    }
+    const hold = await prisma.reservationHold.findFirst({
+      where: {
+        holdId,
+        userId: auth.user.userId,
+        expiresAt: { gt: new Date() },
+      },
+      select: {
+        holdId: true,
+        resourceId: true,
+        startTime: true,
+        endTime: true,
+        expiresAt: true,
+      },
+    });
+    if (!hold) {
+      return NextResponse.json({ message: "Active reservation hold not found" }, { status: 404 });
+    }
+    return NextResponse.json({ hold }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Retrieve reservation hold failed:", error);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}
+
 // Release a temporary reservation hold owned by the authenticated user
 export async function DELETE(request: Request, context: RouteContext) {
   try {
