@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Clock3 } from "lucide-react";
+import { CalendarDays, Clock3, MapPin } from "lucide-react";
 import BookingCalendar from "./booking-time-slot-grid/BookingCalendar";
 import TimeSlotButton from "./booking-time-slot-grid/TimeSlotButton";
 import { colomboToday, parseCalendarDate, dateKey, timeText, instant } from "./booking-time-slot-grid/booking-time-utils";
@@ -285,9 +285,6 @@ export default function BookingTimeSlotGrid({
     startIndex !== null && endIndex !== null
       ? (endIndex - startIndex) * interval
       : 0;
-  const freeCount = slots.filter(
-    (slot) => !slot.booked && !slot.past && !slot.closed,
-  ).length;
   const canExtend =
     endIndex !== null &&
     endIndex < total &&
@@ -386,192 +383,100 @@ export default function BookingTimeSlotGrid({
       ),
     );
   }
+  const operatingLabel =
+    operatingMode === "ALWAYS_OPEN"
+      ? "Open 24 hours"
+      : operatingWindows.length
+        ? operatingWindows.map((window) => {
+            const format = (value: string) => new Intl.DateTimeFormat("en-GB", {
+              timeZone: "Asia/Colombo", hour: "2-digit", minute: "2-digit", hour12: false,
+            }).format(new Date(value));
+            return `${format(window.startTime)} – ${format(window.endTime)}`;
+          }).join(", ")
+        : "Closed";
+  const formattedDate = date
+    ? new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeZone: "Asia/Colombo" }).format(instant(date, 12 * 60))
+    : "";
   return (
-    <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="mt-1 text-lg font-bold text-slate-900">
-            Daily availability
-          </h3>
-          <p className="mt-1 text-xs text-slate-500">
-            {operatingMode === "ALWAYS_OPEN"
-              ? "Open 24 hours"
-              : operatingWindows.length
-                ? "Category operating hours"
-                : "Closed / no operating hours"}{" "}
-            · {interval}-minute slots · Sri Lanka time
-          </p>
-        </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-          {loading
-            ? "Loading..."
-            : date
-              ? `${freeCount} free slots`
-              : "Select date"}
-        </span>
+    <section className="space-y-5">
+      <div className="grid gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 sm:grid-cols-3 sm:p-5">
+        <div className="flex items-center gap-3"><Clock3 className="h-6 w-6 shrink-0 text-slate-500" /><div><p className="font-semibold text-slate-900">{interval} minutes</p><p className="text-xs text-slate-500">per slot</p></div></div>
+        <div className="flex items-center gap-3"><Clock3 className="h-6 w-6 shrink-0 text-slate-500" /><div><p className="font-semibold text-slate-900">{operatingLabel}</p><p className="text-xs text-slate-500">Operating hours</p></div></div>
+        <div className="flex items-center gap-3"><MapPin className="h-6 w-6 shrink-0 text-slate-500" /><div><p className="font-semibold text-slate-900">Sri Lanka time</p><p className="text-xs text-slate-500">Time zone</p></div></div>
       </div>
-      <BookingCalendar
-        calendarRef={calendarRef}
-        calendarOpen={calendarOpen}
-        setCalendarOpen={setCalendarOpen}
-        visibleMonth={visibleMonth}
-        setVisibleMonth={setVisibleMonth}
-        date={date}
-        disabled={disabled}
-        selectedDateLabel={selectedDateLabel}
-        monthTitle={monthTitle}
-        previousMonthDisabled={previousMonthDisabled}
-        calendarDays={calendarDays}
-        today={today}
-        selectDate={selectDate}
-        chooseToday={chooseToday}
-      />
-      <div className="flex flex-wrap gap-4 text-xs text-slate-600">
-        <span className="flex items-center gap-2">
-          <i className="h-3 w-3 rounded bg-slate-50 ring-1 ring-slate-200" />
-          Closed
-        </span>
-        <span className="flex items-center gap-2">
-          <i className="h-3 w-3 rounded bg-emerald-100 ring-1 ring-emerald-300" />
-          Available
-        </span>
-        <span className="flex items-center gap-2">
-          <i className="h-3 w-3 rounded bg-amber-100 ring-1 ring-amber-300" />
-          Temporarily Held
-        </span>
-        <span className="flex items-center gap-2">
-          <i className="h-3 w-3 rounded bg-rose-100 ring-1 ring-rose-300" />
-          Reserved
-        </span>
-        <span className="flex items-center gap-2">
-          <i className="h-3 w-3 rounded bg-indigo-600" />
-          Selected
-        </span>
-        <span className="flex items-center gap-2">
-          <i className="h-3 w-3 rounded bg-slate-200" />
-          Past
-        </span>
-      </div>
-      <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="font-bold text-slate-900">
-            Your selected reservation time
-          </h4>
-          {selectedMinutes > 0 && (
-            <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
-              {selectedMinutes} minutes
-            </span>
-          )}
+      <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <div className="min-w-0 border-b border-slate-200 p-4 sm:p-6 lg:border-b-0 lg:border-r">
+          <h3 className="mb-5 text-lg font-bold text-slate-900">1. Choose a date</h3>
+          <BookingCalendar
+            inline
+            calendarRef={calendarRef}
+            calendarOpen={calendarOpen}
+            setCalendarOpen={setCalendarOpen}
+            visibleMonth={visibleMonth}
+            setVisibleMonth={setVisibleMonth}
+            date={date}
+            disabled={disabled}
+            selectedDateLabel={selectedDateLabel}
+            monthTitle={monthTitle}
+            previousMonthDisabled={previousMonthDisabled}
+            calendarDays={calendarDays}
+            today={today}
+            selectDate={selectDate}
+            chooseToday={chooseToday}
+          />
         </div>
-        {startIndex !== null && endIndex !== null ? (
-          <>
-            <p className="mt-3 rounded-xl border border-indigo-100 bg-white p-4 text-lg font-bold text-indigo-700">
-              {timeText(startIndex * interval)}{" "}
-              <span className="text-slate-400">→</span>{" "}
-              {timeText(endIndex * interval)}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={disabled || !canExtend}
-                onClick={extend}
-                className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40"
-              >
-                + Add {interval} minutes
-              </button>
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => updateSelection(null, null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700"
-              >
-                Clear selection
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="mt-3 text-sm text-slate-500">
-            Choose an available time slot below to start your reservation.
-          </p>
-        )}
-      </div>
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
-        >
-          {error}
-          <button
-            type="button"
-            className="ml-2 font-semibold underline"
-            onClick={() => setRefresh((value) => value + 1)}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-      {!date ? (
-        <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
-          Choose a date to load the real reservation schedule.
-        </div>
-      ) : loading ? (
-        <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
-          Loading reserved time slots...
-        </div>
-      ) : (
-        !error && (
-          <>
-            {operatingWindows.length === 0 ? (
-              <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                This category is closed on the selected date. Please choose
-                another date.
-              </p>
-            ) : (
-              <>
-                {operatingMode === "ALWAYS_OPEN" && (
-                  <div
-                    className="grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1"
-                    role="group"
-                    aria-label="Time of day"
-                  >
-                    {periods.map((period) => (
-                      <button
-                        key={period.id}
-                        type="button"
-                        aria-pressed={mobilePeriod === period.id}
-                        onClick={() => setMobilePeriod(period.id)}
-                        className={`rounded-lg px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
-                          mobilePeriod === period.id
-                            ? "bg-white text-indigo-700 shadow-sm"
-                            : "text-slate-600"
-                        }`}
-                      >
-                        {period.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <div className="grid grid-cols-3 gap-2 md:hidden">
-                  {renderGrid(true)}
+        <div className="min-w-0 p-4 sm:p-6">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-lg font-bold text-slate-900">2. Choose a time</h3>
+            <span className="text-sm text-slate-500">{formattedDate}</span>
+          </div>
+          {error && <div role="alert" className="mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error} <button type="button" className="font-semibold underline" onClick={() => setRefresh((value) => value + 1)}>Retry</button></div>}
+          {!date ? (
+            <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">Choose a date to see available time slots.</div>
+          ) : loading ? (
+            <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">Loading available time slots...</div>
+          ) : !error && (
+            <>
+              {operatingMode === "ALWAYS_OPEN" && (
+                <div className="mb-4 grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Time of day">
+                  {periods.map((period) => <button key={period.id} type="button" aria-pressed={mobilePeriod === period.id} onClick={() => setMobilePeriod(period.id)} className={`rounded-lg px-1 py-2 text-xs font-semibold transition-colors ${mobilePeriod === period.id ? "bg-white text-indigo-700 shadow-sm" : "text-slate-600"}`}>{period.label}</button>)}
                 </div>
-                <div className="hidden grid-cols-4 gap-2 md:grid lg:grid-cols-5">
+              )}
+              {operatingWindows.length === 0 ? (
+                <div className="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">This category is closed on the selected date. Please choose another date.</div>
+              ) : (
+                <div className="grid max-h-[480px] grid-cols-2 gap-2.5 overflow-y-auto pr-1 sm:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4">
                   {renderGrid(false)}
+                  {gridItems.length === 0 && <p className="col-span-full rounded-xl bg-slate-50 p-4 text-sm text-slate-500">No slots in this time period.</p>}
                 </div>
-                {gridItems.length === 0 && (
-                  <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                    No slots in this time period.
-                  </p>
-                )}
-              </>
+              )}
+            </>
+          )}
+          <div className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600"><CalendarDays size={20} /></span>
+              <div className="min-w-0 flex-1"><h4 className="text-sm font-bold text-slate-900">Your selected reservation time</h4><p className="mt-1 text-xs text-slate-500">{selectedMinutes ? `${selectedMinutes} minutes selected` : "Choose an available time slot to start your reservation."}</p></div>
+              <span className="rounded-lg border border-indigo-100 bg-white px-3 py-2 text-sm font-semibold text-indigo-700">{startIndex !== null && endIndex !== null ? `${timeText(startIndex * interval)} – ${timeText(endIndex * interval)}` : "—"}</span>
+            </div>
+            {startIndex !== null && endIndex !== null && (
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-indigo-100 pt-3">
+                <button type="button" disabled={disabled || !canExtend} onClick={extend} className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-40">+ Add {interval} minutes</button>
+                <button type="button" disabled={disabled} onClick={() => updateSelection(null, null)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">Clear selection</button>
+              </div>
             )}
-          </>
-        )
-      )}
-      <p className="text-xs text-slate-500">
-        Availability may change before confirmation. The server checks for
-        overlapping bookings when you confirm. Times shown are in Sri Lanka
-        time and follow category operating hours.
-      </p>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-xs text-slate-600">
+        {[
+          ["Available", "bg-emerald-200"],
+          ["Reserved", "bg-rose-200"],
+          ["Closed / Past", "bg-slate-200"],
+          ["Temporarily Held", "bg-amber-300"],
+          ["Selected", "bg-indigo-400"],
+        ].map(([label, color]) => <span key={label} className="inline-flex items-center gap-2"><span className={`h-3 w-3 rounded-full ${color}`} />{label}</span>)}
+      </div>
+      <p className="text-xs text-slate-500">Availability may change before confirmation. The server checks for overlapping bookings when you confirm. Times shown are in Sri Lanka time and follow category operating hours.</p>
     </section>
   );
 }
