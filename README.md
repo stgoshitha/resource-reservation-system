@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🗓️ ReserveHub
+<img src="public/ReserveHub-Logo.png" alt="ReserveHub Logo" width="150" />
+
+# ReserveHub
 
 ### Resource booking, simplified.
 
@@ -8,11 +10,32 @@ A full-stack resource reservation platform for organizing shared spaces and reso
 
 **Next.js 16 · React 19 · TypeScript · PostgreSQL · Prisma 7 · Tailwind CSS 4**
 
-[Getting Started](#-getting-started) · [Features](#-features) · [Tech Stack](#-tech-stack) · [Project Structure](#-project-structure)
+[🌐 Live Demo](https://reservehub-portal.vercel.app/) · [Getting Started](#-getting-started) · [Features](#-features) · [Tech Stack](#-tech-stack) · [Project Structure](#-project-structure)
 
 </div>
 
 ---
+
+## 🌐 Live Demo
+
+Explore the deployed application here:
+
+**[Launch ReserveHub →](https://reservehub-portal.vercel.app/)**
+
+### 👤 User access
+
+To explore the user experience, open the live demo, register a new account, and sign in. You can then browse resources, select available time slots, and manage your reservations.
+
+### 🛠️ Admin demo access
+
+Use the following **demo-only** credentials to explore the administration features:
+
+| Field | Demo credentials |
+| --- | --- |
+| Email | `admin@gmail.com` |
+| Password | `admin@123` |
+
+> **Demo security:** These credentials must only belong to a dedicated demonstration account with no sensitive or production data. Do not reuse this password for any other account. For a publicly accessible demo, restrict destructive admin actions or use disposable demo data.
 
 ## ✨ Overview
 
