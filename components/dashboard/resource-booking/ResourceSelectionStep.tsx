@@ -8,6 +8,7 @@ import {
   MapPin,
   Presentation,
   Users,
+  Layers3,
 } from "lucide-react";
 import Pagination from "@/components/ui/pagination/Pagination";
 import { FormField, FormInput } from "@/components/ui/form";
@@ -45,11 +46,8 @@ export default function ResourceSelectionStep({
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-lg font-semibold uppercase tracking-wider text-indigo-600">Step 1· Select a Resource</p>
           </div>
-          <p className="text-sm text-slate-500">
-            Choose a category or search for a resource.
-          </p>
         </div>
-        <div className="w-full lg:w-100">
+        <div className="w-full lg:w-md">
           <FormField id="resource-search" label="">
             <FormInput
               id="resource-search"
@@ -66,6 +64,22 @@ export default function ResourceSelectionStep({
         </div>
       </div>
 
+      {!loading && resources.length > 0 && (
+        <div className="flex justify-end">
+          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50/70 px-3.5 py-2 text-xs font-medium text-indigo-700 sm:text-sm">
+            <Layers3 className="h-4 w-4 shrink-0" aria-hidden="true" />
+
+            <span className="font-bold tabular-nums">
+              {filteredResources.length}
+            </span>
+
+            <span>
+              {filteredResources.length === 1 ? "resource" : "resources"} found
+            </span>
+          </div>
+        </div>
+      )}
+
       <div
         className="flex max-w-full items-center gap-1 overflow-x-auto border-b border-slate-200 scrollbar-none"
         aria-label="Resource categories"
@@ -77,19 +91,17 @@ export default function ResourceSelectionStep({
             setCategoryId("all");
             setPage(1);
           }}
-          className={`group relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-            categoryId === "all"
-              ? "font-semibold text-indigo-600"
-              : "text-slate-500 hover:text-indigo-600"
-          }`}
+          className={`group relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${categoryId === "all"
+            ? "font-semibold text-indigo-600"
+            : "text-slate-500 hover:text-indigo-600"
+            }`}
         >
           All Resources
           <span
-            className={`absolute inset-x-3 bottom-0 h-0.5 origin-center rounded-full bg-indigo-600 transition-transform duration-300 ${
-              categoryId === "all"
-                ? "scale-x-100"
-                : "scale-x-0 group-hover:scale-x-100"
-            }`}
+            className={`absolute inset-x-3 bottom-0 h-0.5 origin-center rounded-full bg-indigo-600 transition-transform duration-300 ${categoryId === "all"
+              ? "scale-x-100"
+              : "scale-x-0 group-hover:scale-x-100"
+              }`}
           />
         </button>
         {categories.map(([id, name]) => {
@@ -103,33 +115,24 @@ export default function ResourceSelectionStep({
                 setCategoryId(id);
                 setPage(1);
               }}
-              className={`group relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
-                isActive
-                  ? "font-semibold text-indigo-600"
-                  : "text-slate-500 hover:text-indigo-600"
-              }`}
+              className={`group relative shrink-0 whitespace-nowrap px-4 py-3 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${isActive
+                ? "font-semibold text-indigo-600"
+                : "text-slate-500 hover:text-indigo-600"
+                }`}
             >
               {name}
               <span
-                className={`absolute inset-x-3 bottom-0 h-0.5 origin-center rounded-full bg-indigo-600 transition-transform duration-300 ${
-                  isActive
-                    ? "scale-x-100"
-                    : "scale-x-0 group-hover:scale-x-100"
-                }`}
+                className={`absolute inset-x-3 bottom-0 h-0.5 origin-center rounded-full bg-indigo-600 transition-transform duration-300 ${isActive
+                  ? "scale-x-100"
+                  : "scale-x-0 group-hover:scale-x-100"
+                  }`}
               />
             </button>
           );
         })}
+
       </div>
 
-      {!loading && resources.length > 0 && (
-        <p className="text-sm text-slate-500">
-          <span className="font-semibold text-slate-800">
-            {filteredResources.length}
-          </span>{" "}
-          {filteredResources.length === 1 ? "resource" : "resources"} found
-        </p>
-      )}
 
       {loading ? (
         <div className="rounded-xl border border-dashed border-slate-200 p-10 text-center text-sm text-slate-500">
@@ -157,11 +160,10 @@ export default function ResourceSelectionStep({
               return (
                 <article
                   key={resource.resourceId}
-                  className={`rounded-xl border bg-white p-4 transition-colors sm:p-5 ${
-                    isSelected
-                      ? "border-indigo-500 bg-indigo-50/20"
-                      : "border-slate-200 hover:border-indigo-200"
-                  }`}
+                  className={`rounded-xl border bg-white p-4 transition-colors sm:p-5 ${isSelected
+                    ? "border-indigo-500 bg-indigo-50/20"
+                    : "border-slate-200 hover:border-indigo-200"
+                    }`}
                 >
                   <div className="flex min-w-0 items-start gap-3 sm:gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
@@ -184,11 +186,10 @@ export default function ResourceSelectionStep({
                       type="button"
                       onClick={() => selectResource(resource.resourceId)}
                       disabled={saving}
-                      className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 ${
-                        isSelected
-                          ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                          : "bg-indigo-600 text-white hover:bg-indigo-700"
-                      }`}
+                      className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 ${isSelected
+                        ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                        : "bg-indigo-600 text-white hover:bg-indigo-700"
+                        }`}
                     >
                       {isSelected ? "Selected" : "Select"}
                       {!isSelected && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
