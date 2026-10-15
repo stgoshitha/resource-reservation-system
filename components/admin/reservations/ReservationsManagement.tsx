@@ -71,7 +71,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export default function ReservationsManagement() {
+export default function AdminReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [statusInput, setStatusInput] = useState<StatusFilter>("ALL");

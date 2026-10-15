@@ -33,7 +33,7 @@ export default function ResourceBooking() {
       <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm shadow-slate-200/50 sm:p-6">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Book a Resource</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Reserve a Resource</h1>
             <p className="mt-1 text-sm text-slate-500">Reserve a resource in four simple steps.</p>
           </div>
           <span className="inline-flex shrink-0 items-center rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700">
